@@ -22,6 +22,10 @@ def read_root():
 
 @app.post("/generate-recipe")
 def generate_recipe(request: RecipeRequest):
+    ingredients = request.ingredients
+    preferences = request.preferences
+    allergies = request.allergies
+    print("Request received:", request)
     return {
         "title": f"Recipe with {', '.join(request.ingredients)}",
         "ingredients": request.ingredients,
