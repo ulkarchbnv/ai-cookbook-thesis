@@ -3,6 +3,18 @@ function App() {
   const [ingredients, setIngredients] = useState("");
   const [preferences, setPreferences] = useState("");
   const [allergies, setAllergies] = useState("");
+  const generateRecipe = async () => 
+  {
+    console.log("Button clicked");
+    const load = 
+    {
+      ingredients: ingredients.split(",").map((i) => i.trim()).filter(i => i !== ""),
+      preferences: preferences.split(",").map((i) => i.trim()).filter(i => i !== ""),
+      allergies: allergies.split(",").map((i) => i.trim()).filter(i => i !== ""),
+      
+    };
+    console.log("Payload being sent: ", load)
+  };
   return (
     <div>
       <h1>AI Cookbook</h1>
@@ -36,7 +48,7 @@ function App() {
       />
       <br />
       <br />
-      <button>Generate Recipe</button>
+      <button onClick = {generateRecipe}>Generate Recipe</button>
       <p>Ingredients: {ingredients}</p>
       <p>Preferences: {preferences}</p>
       <p>Allergies: {allergies}</p>
