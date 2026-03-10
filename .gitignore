@@ -35,5 +35,6 @@ frontend/build/
 .DS_Store
 Thumbs.db
 
+.vscode/
 .vscode/settings.json
 .vscode/*.log
