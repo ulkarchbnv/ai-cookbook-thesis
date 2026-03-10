@@ -1,11 +1,18 @@
 import {useState} from "react";
+
 function App() {
   const [ingredients, setIngredients] = useState("");
   const [preferences, setPreferences] = useState("");
   const [allergies, setAllergies] = useState("");
   const [recipe, setRecipe] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
   const generateRecipe = async () => 
   {
+    setLoading(true);
+    setError("");
+    setRecipe(null);
     console.log("Button clicked");
     const load = 
     {
@@ -14,21 +21,31 @@ function App() {
       allergies: allergies.split(",").map((i) => i.trim()).filter(i => i !== ""),
       
     };
-    console.log("Payload being sent: ", load)
-    const response = await fetch("http://127.0.0.1:8000/generate-recipe", 
-      {
-        method: "POST",
-        headers: 
+    console.log("Payload being sent: ", load);
+    try{
+      const response = await fetch("http://127.0.0.1:8000/generate-recipe", 
         {
-          "Content-type": "application/json"
-        },
-        body: JSON.stringify(load)
+          method: "POST",
+          headers: 
+          {
+            "Content-type": "application/json"
+          },
+          body: JSON.stringify(load)
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to generate recipe");
       }
-    );
-    const data = await response.json();
-    console.log("Response from backend:", data);
-    setRecipe(data);
-  };
+
+      const data = await response.json();
+      console.log("Response from backend:", data);
+      setRecipe(data);
+    } catch (err) {
+      console.error("Frontend error:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+  }};
   return (
     <div>      <h1>AI Cookbook</h1>
       <label>Ingredients</label>
@@ -62,6 +79,8 @@ function App() {
       <br />
       <br />
       <button onClick = {generateRecipe}>Generate Recipe</button>
+      {loading && <p>Generating recipe...</p>}
+      {error && <p style={{ color: "red" }}>{error}</p>}
       <p>Ingredients: {ingredients}</p>
       <p>Preferences: {preferences}</p>
       <p>Allergies: {allergies}</p>
