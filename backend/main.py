@@ -4,6 +4,7 @@ from typing import List
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from openai import OpenAI
+import json
 import os
 
 load_dotenv()
@@ -23,52 +24,71 @@ class RecipeRequest(BaseModel):
     preferences: List[str] = []
     allergies: List[str] = []
 
+class NutritionEstimate(BaseModel):
+    calories: int
+    protein: str
+    carbs: str
+    fat: str
+
+class RecipeResponse(BaseModel):
+    title: str
+    ingredients: List[str]
+    preferences: List[str]
+    allergies: List[str]
+    steps: List[str]
+    nutrition_estimate: NutritionEstimate
+
 @app.get("/")
 def read_root():
     return{"message": "AI Cookbook backend is running",
            "openai_key_loaded": OPENAI_API_KEY is not None}
 
-def generate_text_recipe(request: RecipeRequest):
-    prompt = f""" Create one simple recipe using these ingredients I have:
-    {", ".join(request.ingredients)}. 
+def generate_structured_recipe(request: RecipeRequest):
+    prompt = f"""
+    Create one recipe using these ingredients: {", ".join(request.ingredients)}.
     Dietary preferences: {", ".join(request.preferences) if request.preferences else "none"}.
-    Allergies to be careful!: {", ".join(request.allergies) if request.allergies else "none"}.
-    Return:
-    1. A recipe title
-    2. A short ingredient list
-    3. 3 short cooking instructions
-    4. A rough nutrition estimate
+    Allergies to avoid: {", ".join(request.allergies) if request.allergies else "none"}.
+
+    Return ONLY valid JSON in this exact structure:
+    {{
+      "title": "string",
+      "ingredients": ["string", "string"],
+      "preferences": ["string"],
+      "allergies": ["string"],
+      "steps": ["string", "string", "string"],
+      "nutrition_estimate": {{
+        "calories": 0,
+        "protein": "string",
+        "carbs": "string",
+        "fat": "string"
+      }}
+    }}
+
+    Rules:
+    - Return only JSON
+    - No markdown
+    - No explanation text
+    - Respect dietary preferences and allergies
     """
+
     response = client.responses.create(
-        model = "gpt-4.1-mini",
-        input = prompt
+        model="gpt-4.1-mini",
+        input=prompt
     )
-    return response.output_text
+
+    recipe_text = response.output_text
+    print("LLM structured response:", recipe_text)
+
+    return json.loads(recipe_text)
 
 
 
-@app.post("/generate-recipe")
+@app.post("/generate-recipe", response_model = RecipeResponse)
 def generate_recipe(request: RecipeRequest):
     ingredients = request.ingredients
     preferences = request.preferences
     allergies = request.allergies
     print("Request received:", request)
-    ai_text = generate_text_recipe(request)
-    print("LLM response: ", ai_text)
-    return {
-        "title": f"Recipe with {', '.join(request.ingredients)}",
-        "ingredients": request.ingredients,
-        "preferences": request.preferences,
-        "allergies": request.allergies,
-        "steps": [
-            "Step 1: Prepare ingredients",
-            "Step 2: Cook all of them",
-            "Step 3: Serve the meal"
-        ],
-        "nutrition_estimate": {
-            "calories": 500,
-            "protein": "20g",
-            "carbs": "50g",
-            "fat": "15g"
-        }
-    }
+    recipe_data = generate_structured_recipe(request)
+    return recipe_data
+    
