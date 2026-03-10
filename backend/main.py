@@ -2,7 +2,11 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -18,7 +22,8 @@ class RecipeRequest(BaseModel):
 
 @app.get("/")
 def read_root():
-    return{"message": "AI Cookbook backend is running"}
+    return{"message": "AI Cookbook backend is running",
+           "openai_key_loaded": OPENAI_API_KEY is not None}
 
 @app.post("/generate-recipe")
 def generate_recipe(request: RecipeRequest):
