@@ -6,6 +6,10 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import json
 import os
+from database import engine 
+from models import Base
+
+Base.metadata.create_all(bind = engine)
 
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
