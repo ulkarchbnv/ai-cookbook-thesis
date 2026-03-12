@@ -8,6 +8,12 @@ import json
 import os
 from database import engine 
 from models import Base
+from fastapi import Depends, HTTPException
+from sqlalchemy.orm import Session
+from database import get_db
+from schemas import UserCreate, UserResponse
+from security import hash_password
+from models import User
 
 Base.metadata.create_all(bind = engine)
 
@@ -95,4 +101,18 @@ def generate_recipe(request: RecipeRequest):
     print("Request received:", request)
     recipe_data = generate_structured_recipe(request)
     return recipe_data
+
+@app.post("/signup", response_model = UserResponse)
+def signup(user: UserCreate, db: Session = Depends(get_db)):
+    existing_user = db.query(User).filter(User.email == user.email).first()
+    if existing_user:
+        raise HTTPException(status_code = 400, detail = "Email already registered")
+    new_user = User(
+        email = user.email,
+        password = hash_password(user.password)
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
     
