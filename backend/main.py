@@ -14,6 +14,8 @@ from database import get_db
 from schemas import UserCreate, UserResponse
 from security import hash_password
 from models import User
+from security import hash_password, verify_password, create_access_token
+from schemas import UserCreate, UserResponse, UserLogin, TokenResponse
 
 Base.metadata.create_all(bind = engine)
 
@@ -115,4 +117,21 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
     return new_user
+
+@app.post("/login", response_model=TokenResponse)
+def login(user: UserLogin, db: Session = Depends(get_db)):
+    existing_user = db.query(User).filter(User.email == user.email).first()
+
+    if not existing_user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    if not verify_password(user.password, existing_user.password):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    access_token = create_access_token(data={"sub": existing_user.email})
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
     
