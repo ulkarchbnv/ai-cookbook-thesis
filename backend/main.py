@@ -19,6 +19,8 @@ from schemas import UserCreate, UserResponse, UserLogin, TokenResponse
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from models import Recipe
+from schemas import SavedRecipeCreate, SavedRecipeResponse
 
 Base.metadata.create_all(bind = engine)
 
@@ -185,3 +187,23 @@ def login_for_access_token(
         "access_token": access_token,
         "token_type": "bearer"
     }
+
+@app.post("/recipes", response_model=SavedRecipeResponse)
+def save_recipe(
+    recipe: SavedRecipeCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    db_recipe = Recipe(
+        title=recipe.title,
+        ingredients=str(recipe.ingredients),
+        steps=str(recipe.steps),
+        nutrition=str(recipe.nutrition),
+        user_id=current_user.id
+    )
+
+    db.add(db_recipe)
+    db.commit()
+    db.refresh(db_recipe)
+
+    return db_recipe

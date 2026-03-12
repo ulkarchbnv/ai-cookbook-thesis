@@ -20,3 +20,20 @@ class UserLogin(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
+
+class SavedRecipeCreate(BaseModel):
+    title: str
+    ingredients: list[str]
+    steps: list[str]
+    nutrition: dict
+
+
+class SavedRecipeResponse(BaseModel):
+    id: int
+    title: str
+    ingredients: str
+    steps: str
+    nutrition: str
+
+    class Config:
+        from_attributes = True
