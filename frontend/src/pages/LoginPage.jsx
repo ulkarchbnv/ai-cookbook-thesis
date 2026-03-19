@@ -43,7 +43,9 @@ function LoginPage({ token, onAuthSuccess }) {
   return (
     <div className="page-card">
       <h1>{token ? "Account" : "Login"}</h1>
-      <p>{token ? "You are logged in." : "Create an account or log in to save recipes."}</p>
+      <p className="section-copy">
+        {token ? "You are logged in and can save generated recipes." : "Create an account or log in to save recipes."}
+      </p>
 
       <div className="button-row">
         <button type="button" onClick={() => setMode("login")} disabled={mode === "login"}>

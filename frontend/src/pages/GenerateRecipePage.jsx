@@ -75,79 +75,79 @@ function GenerateRecipePage({ token }) {
   return (
     <div className="page-card">
       <h1>Generate Recipe</h1>
+      <p className="section-copy">
+        Enter ingredients and optional dietary constraints to generate a structured recipe.
+      </p>
 
-      <label>Ingredients</label>
-      <br />
-      <input
-        type="text"
-        value={ingredients}
-        onChange={(e) => setIngredients(e.target.value)}
-        placeholder="e.g. chicken, rice, tomato"
-      />
+      <div className="field-grid">
+        <div className="field-group">
+          <label htmlFor="ingredients">Ingredients</label>
+          <input
+            id="ingredients"
+            type="text"
+            value={ingredients}
+            onChange={(e) => setIngredients(e.target.value)}
+            placeholder="e.g. chicken, rice, tomato"
+          />
+        </div>
 
-      <br />
-      <br />
+        <div className="field-group">
+          <label htmlFor="preferences">Preferences</label>
+          <input
+            id="preferences"
+            type="text"
+            value={preferences}
+            onChange={(e) => setPreferences(e.target.value)}
+            placeholder="e.g. halal, vegetarian"
+          />
+        </div>
 
-      <label>Preferences</label>
-      <br />
-      <input
-        type="text"
-        value={preferences}
-        onChange={(e) => setPreferences(e.target.value)}
-        placeholder="e.g. halal, vegetarian"
-      />
+        <div className="field-group">
+          <label htmlFor="allergies">Allergies</label>
+          <input
+            id="allergies"
+            type="text"
+            value={allergies}
+            onChange={(e) => setAllergies(e.target.value)}
+            placeholder="e.g. peanut, milk"
+          />
+        </div>
+      </div>
 
-      <br />
-      <br />
-
-      <label>Allergies</label>
-      <br />
-      <input
-        type="text"
-        value={allergies}
-        onChange={(e) => setAllergies(e.target.value)}
-        placeholder="e.g. peanut, milk"
-      />
-
-      <br />
-      <br />
-
-      <button onClick={generateRecipe}>Generate Recipe</button>
+      <div className="button-row">
+        <button type="button" onClick={generateRecipe}>Generate Recipe</button>
+      </div>
       {loading && <p>Generating recipe...</p>}
       {error && <p className="message error">{error}</p>}
-
-      <p>Ingredients: {ingredients}</p>
-      <p>Preferences: {preferences}</p>
-      <p>Allergies: {allergies}</p>
 
       {recipe && (
         <div className="recipe-card">
           <h2>{recipe.title}</h2>
-
           <p><strong>Ingredients:</strong> {recipe.ingredients.join(", ")}</p>
-          <p><strong>Preferences:</strong> {recipe.preferences.join(", ")}</p>
-          <p><strong>Allergies:</strong> {recipe.allergies.join(", ")}</p>
+          <p><strong>Preferences:</strong> {recipe.preferences.join(", ") || "None"}</p>
+          <p><strong>Allergies:</strong> {recipe.allergies.join(", ") || "None"}</p>
 
-          <h3>Steps</h3>
-          <ul>
-            {recipe.steps.map((step, index) => (
-              <li key={index}>{step}</li>
-            ))}
-          </ul>
+          <div className="result-block">
+            <h3 className="section-title">Steps</h3>
+            <ul className="result-list">
+              {recipe.steps.map((step, index) => (
+                <li key={index}>{step}</li>
+              ))}
+            </ul>
+          </div>
 
-          <h3>Nutrition Estimate</h3>
-          <p>Calories: {recipe.nutrition_estimate.calories}</p>
-          <p>Protein: {recipe.nutrition_estimate.protein}</p>
-          <p>Carbs: {recipe.nutrition_estimate.carbs}</p>
-          <p>Fat: {recipe.nutrition_estimate.fat}</p>
+          <p><strong>Calories:</strong> {recipe.nutrition_estimate.calories}</p>
+          <p><strong>Protein:</strong> {recipe.nutrition_estimate.protein}</p>
+          <p><strong>Carbs:</strong> {recipe.nutrition_estimate.carbs}</p>
+          <p><strong>Fat:</strong> {recipe.nutrition_estimate.fat}</p>
 
           {token ? (
-            <>
+            <div className="inline-actions">
               <button type="button" onClick={saveRecipe} disabled={saveLoading}>
                 {saveLoading ? "Saving..." : "Save Recipe"}
               </button>
               {saveMessage && <p className="message">{saveMessage}</p>}
-            </>
+            </div>
           ) : (
             <p className="message">Log in to save this recipe.</p>
           )}

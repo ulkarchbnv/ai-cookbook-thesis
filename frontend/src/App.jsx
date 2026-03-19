@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import { BrowserRouter, Routes, Route, NavLink } from "react-router-dom";
 import { useState } from "react";
+import "./App.css";
 import HomePage from "./pages/HomePage";
 import GenerateRecipePage from "./pages/GenerateRecipePage";
 import SavedRecipesPage from "./pages/SavedRecipesPage";
@@ -22,20 +23,35 @@ function App() {
   return (
     <BrowserRouter>
       <div className="app-shell">
-        <nav className="nav-bar">
-          <Link to="/">Home</Link> |{" "}
-          <Link to="/generate">Generate Recipe</Link> |{" "}
-          <Link to="/nutrition">Nutrition Info</Link> |{" "}
-          <Link to="/saved">Saved Recipes</Link> |{" "}
-          <Link to="/login">{token ? "Account" : "Login"}</Link>
-          {token && (
-            <button type="button" onClick={handleLogout} className="link-button">
-              Logout
-            </button>
-          )}
-        </nav>
+        <header className="site-header">
+          <div className="brand-block">
+            <p className="brand-kicker">AI Cookbook</p>
+            <p className="brand-copy">Ingredient-based recipes, nutrition extraction, and saved cooking workflows.</p>
+          </div>
 
-        <hr />
+          <nav className="nav-bar">
+            <NavLink to="/" end className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
+              Home
+            </NavLink>
+            <NavLink to="/generate" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
+              Generate Recipe
+            </NavLink>
+            <NavLink to="/nutrition" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
+              Nutrition Info
+            </NavLink>
+            <NavLink to="/saved" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
+              Saved Recipes
+            </NavLink>
+            <NavLink to="/login" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
+              {token ? "Account" : "Login"}
+            </NavLink>
+            {token && (
+              <button type="button" onClick={handleLogout} className="logout-button">
+                Logout
+              </button>
+            )}
+          </nav>
+        </header>
 
         <Routes>
           <Route path="/" element={<HomePage />} />

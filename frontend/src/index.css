@@ -1,9 +1,11 @@
 :root {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
   line-height: 1.5;
   font-weight: 400;
   color: #14213d;
-  background: linear-gradient(180deg, #f5f7fb 0%, #edf2f7 100%);
+  background:
+    radial-gradient(circle at top left, rgba(15, 76, 129, 0.08), transparent 28%),
+    linear-gradient(180deg, #f5f7fb 0%, #edf2f7 100%);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -28,24 +30,32 @@ body {
 }
 
 h1 {
-  font-size: 2.4rem;
-  line-height: 1.15;
+  font-size: 2.9rem;
+  line-height: 1.05;
+}
+
+h2,
+h3,
+p {
+  margin-top: 0;
 }
 
 button {
-  border-radius: 8px;
+  border-radius: 12px;
   border: 1px solid #0f4c81;
-  padding: 0.6em 1.2em;
+  padding: 0.72em 1.2em;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
   background-color: #0f4c81;
   color: #ffffff;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: border-color 0.25s, transform 0.15s ease, box-shadow 0.15s ease;
 }
 button:hover {
   border-color: #163f6b;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(15, 76, 129, 0.18);
 }
 button:focus,
 button:focus-visible {
@@ -61,11 +71,21 @@ button:focus-visible {
 }
 
 input {
-  width: min(100%, 420px);
-  padding: 0.7rem 0.85rem;
-  border-radius: 10px;
+  width: 100%;
+  padding: 0.8rem 0.9rem;
+  border-radius: 12px;
   border: 1px solid #c7d1df;
   box-sizing: border-box;
+  background: #fcfdff;
+}
+
+input[type="file"] {
+  width: 100%;
+  background: #f8fafc;
+}
+
+label {
+  font-weight: 600;
 }
 
 ul {
@@ -78,6 +98,6 @@ ul {
   }
 
   h1 {
-    font-size: 2rem;
+    font-size: 2.2rem;
   }
 }

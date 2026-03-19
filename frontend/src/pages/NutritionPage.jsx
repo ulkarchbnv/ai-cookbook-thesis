@@ -38,11 +38,7 @@ function NutritionPage() {
   return (
     <div className="page-card">
       <h1>Nutrition Info</h1>
-      <p>Upload a nutrition label image and the system will extract text and structure it.</p>
-      <p>
-        This follows the thesis design directly: OCR reads the label first, then the application
-        turns the raw text into clean nutrition data.
-      </p>
+      <p className="section-copy">Upload a nutrition label image to extract and organize its nutrition data.</p>
 
       <form onSubmit={handleSubmit} className="form-stack">
         <label htmlFor="nutrition-image">Nutrition Label Image</label>
@@ -72,7 +68,7 @@ function NutritionPage() {
           <p><strong>Sodium (mg):</strong> {result.structured_nutrition.sodium_mg ?? "Not found"}</p>
           <p><strong>Fiber (g):</strong> {result.structured_nutrition.fiber_g ?? "Not found"}</p>
 
-          <h3>Raw OCR Text</h3>
+          <h3 className="section-title">Raw OCR Text</h3>
           <pre className="ocr-output">{result.raw_text}</pre>
         </div>
       )}

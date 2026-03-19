@@ -45,10 +45,11 @@ function SavedRecipesPage({ token }) {
   return (
     <div className="page-card">
       <h1>Saved Recipes</h1>
+      <p className="section-copy">Browse the recipes you saved while testing and using the app.</p>
 
       {loading && <p>Loading saved recipes...</p>}
       {error && <p className="message error">{error}</p>}
-      {!loading && !error && recipes.length === 0 && <p>No saved recipes yet.</p>}
+      {!loading && !error && recipes.length === 0 && <p className="empty-state">No saved recipes yet.</p>}
 
       {recipes.map((recipe) => (
         <div key={recipe.id} className="recipe-card">
@@ -56,17 +57,20 @@ function SavedRecipesPage({ token }) {
           <p><strong>Ingredients:</strong> {recipe.ingredients.join(", ")}</p>
           <p><strong>Preferences:</strong> {recipe.preferences.join(", ") || "None"}</p>
           <p><strong>Allergies:</strong> {recipe.allergies.join(", ") || "None"}</p>
-          <h3>Steps</h3>
-          <ul>
+
+          <div className="result-block">
+            <h3 className="section-title">Steps</h3>
+            <ul className="result-list">
             {recipe.steps.map((step, index) => (
               <li key={`${recipe.id}-${index}`}>{step}</li>
             ))}
-          </ul>
-          <h3>Nutrition</h3>
-          <p>Calories: {recipe.nutrition.calories}</p>
-          <p>Protein: {recipe.nutrition.protein}</p>
-          <p>Carbs: {recipe.nutrition.carbs}</p>
-          <p>Fat: {recipe.nutrition.fat}</p>
+            </ul>
+          </div>
+
+          <p><strong>Calories:</strong> {recipe.nutrition.calories}</p>
+          <p><strong>Protein:</strong> {recipe.nutrition.protein}</p>
+          <p><strong>Carbs:</strong> {recipe.nutrition.carbs}</p>
+          <p><strong>Fat:</strong> {recipe.nutrition.fat}</p>
         </div>
       ))}
     </div>

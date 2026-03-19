@@ -1,10 +1,10 @@
 import json
 from io import BytesIO
 
+import pytesseract
 from fastapi import HTTPException, UploadFile, status
 from openai import OpenAI
 from PIL import Image, ImageOps
-import pytesseract
 
 from backend.config import settings
 from backend.schemas import NutritionLabelData, OcrExtractionResponse
@@ -56,7 +56,7 @@ def _extract_text_with_tesseract(file_bytes: bytes) -> str:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Tesseract OCR failed to process the image.",
-        )
+        ) from exc
 
     cleaned_text = raw_text.strip()
     if not cleaned_text:
