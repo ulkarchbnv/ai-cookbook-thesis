@@ -1,54 +1,79 @@
 import { useState } from "react";
+import { apiFetch } from "../lib/api";
 
-function GenerateRecipePage() {
+function GenerateRecipePage({ token }) {
   const [ingredients, setIngredients] = useState("");
   const [preferences, setPreferences] = useState("");
   const [allergies, setAllergies] = useState("");
   const [recipe, setRecipe] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [saveMessage, setSaveMessage] = useState("");
+  const [saveLoading, setSaveLoading] = useState(false);
 
   const generateRecipe = async () => {
     setLoading(true);
     setError("");
     setRecipe(null);
+    setSaveMessage("");
 
-    console.log("Button clicked");
-
-    const load = {
+    const payload = {
       ingredients: ingredients.split(",").map((i) => i.trim()).filter((i) => i !== ""),
       preferences: preferences.split(",").map((i) => i.trim()).filter((i) => i !== ""),
       allergies: allergies.split(",").map((i) => i.trim()).filter((i) => i !== ""),
     };
 
-    console.log("Payload being sent: ", load);
-
     try {
-      const response = await fetch("http://127.0.0.1:8000/generate-recipe", {
+      const data = await apiFetch("/generate-recipe", {
         method: "POST",
         headers: {
-          "Content-type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(load)
+        body: JSON.stringify(payload),
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to generate recipe");
-      }
-
-      const data = await response.json();
-      console.log("Response from backend:", data);
       setRecipe(data);
     } catch (err) {
-      console.error("Frontend error:", err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  const saveRecipe = async () => {
+    if (!recipe || !token) {
+      return;
+    }
+
+    setSaveLoading(true);
+    setSaveMessage("");
+
+    try {
+      await apiFetch("/recipes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: recipe.title,
+          ingredients: recipe.ingredients,
+          preferences: recipe.preferences,
+          allergies: recipe.allergies,
+          steps: recipe.steps,
+          nutrition: recipe.nutrition_estimate,
+        }),
+      });
+
+      setSaveMessage("Recipe saved successfully.");
+    } catch (err) {
+      setSaveMessage(err.message);
+    } finally {
+      setSaveLoading(false);
+    }
+  };
+
   return (
-    <div>
+    <div className="page-card">
       <h1>Generate Recipe</h1>
 
       <label>Ingredients</label>
@@ -89,14 +114,14 @@ function GenerateRecipePage() {
 
       <button onClick={generateRecipe}>Generate Recipe</button>
       {loading && <p>Generating recipe...</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <p className="message error">{error}</p>}
 
       <p>Ingredients: {ingredients}</p>
       <p>Preferences: {preferences}</p>
       <p>Allergies: {allergies}</p>
 
       {recipe && (
-        <div>
+        <div className="recipe-card">
           <h2>{recipe.title}</h2>
 
           <p><strong>Ingredients:</strong> {recipe.ingredients.join(", ")}</p>
@@ -115,6 +140,17 @@ function GenerateRecipePage() {
           <p>Protein: {recipe.nutrition_estimate.protein}</p>
           <p>Carbs: {recipe.nutrition_estimate.carbs}</p>
           <p>Fat: {recipe.nutrition_estimate.fat}</p>
+
+          {token ? (
+            <>
+              <button type="button" onClick={saveRecipe} disabled={saveLoading}>
+                {saveLoading ? "Saving..." : "Save Recipe"}
+              </button>
+              {saveMessage && <p className="message">{saveMessage}</p>}
+            </>
+          ) : (
+            <p className="message">Log in to save this recipe.</p>
+          )}
         </div>
       )}
     </div>

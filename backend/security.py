@@ -1,15 +1,12 @@
-from pwdlib import PasswordHash
-from jose import jwt
-from datetime import datetime, timedelta
-from dotenv import load_dotenv
-import os
+from datetime import datetime, timedelta, timezone
 
-load_dotenv()
+from jose import jwt
+from pwdlib import PasswordHash
+
+from backend.config import settings
+
 
 password_hash = PasswordHash.recommended()
-
-SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
 
 def hash_password(password: str) -> str:
@@ -22,6 +19,6 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def create_access_token(data: dict, expires_minutes: int = 60) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=expires_minutes)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
