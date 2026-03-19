@@ -91,3 +91,19 @@ class NutritionLabelData(BaseModel):
 class OcrExtractionResponse(BaseModel):
     raw_text: str
     structured_nutrition: NutritionLabelData
+
+
+class SavedOcrExtractionCreate(BaseModel):
+    source_filename: str
+    raw_text: str
+    structured_nutrition: NutritionLabelData
+
+
+class SavedOcrExtractionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    source_filename: str
+    raw_text: str
+    structured_nutrition: NutritionLabelData
+    created_at: datetime

@@ -65,7 +65,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/generate" element={<GenerateRecipePage token={token} profile={profile} />} />
-          <Route path="/nutrition" element={<NutritionPage />} />
+          <Route path="/nutrition" element={<NutritionPage token={token} />} />
           <Route path="/saved" element={<SavedRecipesPage token={token} />} />
           <Route
             path="/login"

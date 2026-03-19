@@ -16,6 +16,11 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     recipes = relationship("Recipe", back_populates="owner", cascade="all, delete-orphan")
+    ocr_extractions = relationship(
+        "OcrExtraction",
+        back_populates="owner",
+        cascade="all, delete-orphan",
+    )
 
 
 class Recipe(Base):
@@ -33,3 +38,16 @@ class Recipe(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     owner = relationship("User", back_populates="recipes")
+
+
+class OcrExtraction(Base):
+    __tablename__ = "ocr_extractions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    source_filename = Column(String, nullable=False)
+    raw_text = Column(Text, nullable=False)
+    structured_nutrition = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    owner = relationship("User", back_populates="ocr_extractions")

@@ -9,6 +9,22 @@ from backend.models import User
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
+optional_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token", auto_error=False)
+
+
+def _get_user_from_token(token: str | None, db: Session) -> User | None:
+    if not token:
+        return None
+
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        email = payload.get("sub")
+        if email is None:
+            return None
+    except JWTError:
+        return None
+
+    return db.query(User).filter(User.email == email).first()
 
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
@@ -17,16 +33,15 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         detail="Could not validate credentials",
     )
 
-    try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-        email = payload.get("sub")
-        if email is None:
-            raise credentials_exception
-    except JWTError as exc:
-        raise credentials_exception from exc
-
-    user = db.query(User).filter(User.email == email).first()
+    user = _get_user_from_token(token, db)
     if user is None:
         raise credentials_exception
 
     return user
+
+
+def get_optional_current_user(
+    token: str | None = Depends(optional_oauth2_scheme),
+    db: Session = Depends(get_db),
+) -> User | None:
+    return _get_user_from_token(token, db)
