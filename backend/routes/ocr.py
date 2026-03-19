@@ -1,6 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, File, UploadFile
 
-from backend.services.ocr_service import ocr_not_implemented
+from backend.schemas import OcrExtractionResponse
+from backend.services.ocr_service import extract_nutrition_label
 
 
 router = APIRouter(prefix="/ocr", tags=["ocr"])
@@ -8,9 +9,12 @@ router = APIRouter(prefix="/ocr", tags=["ocr"])
 
 @router.get("/status")
 def get_ocr_status():
-    return {"implemented": False, "message": "OCR is planned but not implemented yet."}
+    return {
+        "implemented": True,
+        "message": "OCR upload and extraction endpoint is available.",
+    }
 
 
-@router.post("/extract")
-def extract_nutrition_label():
-    ocr_not_implemented()
+@router.post("/extract", response_model=OcrExtractionResponse)
+async def extract_nutrition(file: UploadFile = File(...)):
+    return await extract_nutrition_label(file)

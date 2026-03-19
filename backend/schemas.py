@@ -67,3 +67,20 @@ class SavedRecipeResponse(BaseModel):
     steps: list[str]
     nutrition: NutritionEstimate
     created_at: datetime
+
+
+class NutritionLabelData(BaseModel):
+    product_name: str | None = None
+    serving_size: str | None = None
+    calories: int | None = None
+    protein_g: float | None = None
+    carbs_g: float | None = None
+    fat_g: float | None = None
+    sugar_g: float | None = None
+    sodium_mg: float | None = None
+    fiber_g: float | None = None
+
+
+class OcrExtractionResponse(BaseModel):
+    raw_text: str
+    structured_nutrition: NutritionLabelData
