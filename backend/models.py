@@ -11,6 +11,8 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     password = Column(String, nullable=False)
+    preferences = Column(Text, nullable=False, default="[]")
+    allergies = Column(Text, nullable=False, default="[]")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     recipes = relationship("Recipe", back_populates="owner", cascade="all, delete-orphan")

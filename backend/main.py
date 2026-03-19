@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import settings
-from backend.database import Base, engine, ensure_recipe_columns
+from backend.database import Base, engine, ensure_recipe_columns, ensure_user_profile_columns
 from backend.routes import auth, ocr, recipes
 
 
@@ -21,6 +21,7 @@ app.add_middleware(
 def on_startup() -> None:
     Base.metadata.create_all(bind=engine)
     ensure_recipe_columns()
+    ensure_user_profile_columns()
 
 
 @app.get("/")

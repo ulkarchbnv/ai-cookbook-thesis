@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { apiFetch } from "../lib/api";
 
-function GenerateRecipePage({ token }) {
+function GenerateRecipePage({ token, profile }) {
   const [ingredients, setIngredients] = useState("");
   const [preferences, setPreferences] = useState("");
   const [allergies, setAllergies] = useState("");
@@ -17,10 +17,13 @@ function GenerateRecipePage({ token }) {
     setRecipe(null);
     setSaveMessage("");
 
+    const manualPreferences = preferences.split(",").map((i) => i.trim()).filter((i) => i !== "");
+    const manualAllergies = allergies.split(",").map((i) => i.trim()).filter((i) => i !== "");
+
     const payload = {
       ingredients: ingredients.split(",").map((i) => i.trim()).filter((i) => i !== ""),
-      preferences: preferences.split(",").map((i) => i.trim()).filter((i) => i !== ""),
-      allergies: allergies.split(",").map((i) => i.trim()).filter((i) => i !== ""),
+      preferences: manualPreferences.length > 0 ? manualPreferences : profile?.preferences || [],
+      allergies: manualAllergies.length > 0 ? manualAllergies : profile?.allergies || [],
     };
 
     try {
@@ -78,6 +81,12 @@ function GenerateRecipePage({ token }) {
       <p className="section-copy">
         Enter ingredients and optional dietary constraints to generate a structured recipe.
       </p>
+
+      {profile && (
+        <p className="section-copy">
+          Saved profile defaults will be used when the preference or allergy fields are left empty.
+        </p>
+      )}
 
       <div className="field-grid">
         <div className="field-group">

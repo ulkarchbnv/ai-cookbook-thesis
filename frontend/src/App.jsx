@@ -9,8 +9,16 @@ import NutritionPage from "./pages/NutritionPage";
 
 function App() {
   const [token, setToken] = useState(() => localStorage.getItem("token"));
+  const [profile, setProfile] = useState(null);
 
   const handleAuthSuccess = (nextToken) => {
+    if (!nextToken) {
+      localStorage.removeItem("token");
+      setToken(null);
+      setProfile(null);
+      return;
+    }
+
     localStorage.setItem("token", nextToken);
     setToken(nextToken);
   };
@@ -18,6 +26,7 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     setToken(null);
+    setProfile(null);
   };
 
   return (
@@ -55,10 +64,20 @@ function App() {
 
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/generate" element={<GenerateRecipePage token={token} />} />
+          <Route path="/generate" element={<GenerateRecipePage token={token} profile={profile} />} />
           <Route path="/nutrition" element={<NutritionPage />} />
           <Route path="/saved" element={<SavedRecipesPage token={token} />} />
-          <Route path="/login" element={<LoginPage token={token} onAuthSuccess={handleAuthSuccess} />} />
+          <Route
+            path="/login"
+            element={
+              <LoginPage
+                token={token}
+                profile={profile}
+                setProfile={setProfile}
+                onAuthSuccess={handleAuthSuccess}
+              />
+            }
+          />
         </Routes>
       </div>
     </BrowserRouter>

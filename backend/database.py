@@ -32,6 +32,27 @@ def ensure_recipe_columns() -> None:
             connection.execute(text(statement))
 
 
+def ensure_user_profile_columns() -> None:
+    inspector = inspect(engine)
+    if not inspector.has_table("users"):
+        return
+
+    existing_columns = {column["name"] for column in inspector.get_columns("users")}
+    statements: list[str] = []
+
+    if "preferences" not in existing_columns:
+        statements.append("ALTER TABLE users ADD COLUMN preferences TEXT NOT NULL DEFAULT '[]'")
+    if "allergies" not in existing_columns:
+        statements.append("ALTER TABLE users ADD COLUMN allergies TEXT NOT NULL DEFAULT '[]'")
+
+    if not statements:
+        return
+
+    with engine.begin() as connection:
+        for statement in statements:
+            connection.execute(text(statement))
+
+
 def get_db():
     db = SessionLocal()
     try:

@@ -12,6 +12,8 @@ class UserResponse(BaseModel):
 
     id: int
     email: EmailStr
+    preferences: list[str] = Field(default_factory=list)
+    allergies: list[str] = Field(default_factory=list)
     created_at: datetime
 
 
@@ -23,6 +25,11 @@ class UserLogin(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
+
+
+class UserProfileUpdate(BaseModel):
+    preferences: list[str] = Field(default_factory=list)
+    allergies: list[str] = Field(default_factory=list)
 
 
 class NutritionEstimate(BaseModel):
