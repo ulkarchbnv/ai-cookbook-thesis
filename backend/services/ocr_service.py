@@ -4,7 +4,7 @@ from io import BytesIO
 import pytesseract
 from fastapi import HTTPException, UploadFile, status
 from openai import OpenAI
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 from backend.config import settings
 from backend.schemas import NutritionLabelData, OcrExtractionResponse
@@ -18,14 +18,35 @@ def _validate_image_file(file: UploadFile) -> None:
         )
 
 
+def _validate_image_size(file_bytes: bytes) -> None:
+    if len(file_bytes) > settings.max_ocr_upload_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="The uploaded image is too large.",
+        )
+
+
 def _prepare_image_for_ocr(file_bytes: bytes) -> Image.Image:
     try:
+        Image.MAX_IMAGE_PIXELS = settings.max_ocr_image_pixels
         image = Image.open(BytesIO(file_bytes))
-    except Exception as exc:
+        image.load()
+    except Image.DecompressionBombError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="The uploaded image is too large to process safely.",
+        ) from exc
+    except (UnidentifiedImageError, OSError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The uploaded file could not be read as an image.",
         ) from exc
+
+    if image.width * image.height > settings.max_ocr_image_pixels:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="The uploaded image dimensions are too large.",
+        )
 
     grayscale = ImageOps.grayscale(image)
     contrast_ready = ImageOps.autocontrast(grayscale)
@@ -125,6 +146,7 @@ async def extract_nutrition_label(file: UploadFile) -> OcrExtractionResponse:
             detail="Uploaded file is empty.",
         )
 
+    _validate_image_size(file_bytes)
     raw_text = _extract_text_with_tesseract(file_bytes)
     structured_nutrition = _structure_nutrition_text(raw_text)
 

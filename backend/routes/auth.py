@@ -1,4 +1,3 @@
-import ast
 import json
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -10,32 +9,17 @@ from backend.dependencies import get_current_user
 from backend.models import User
 from backend.schemas import TokenResponse, UserCreate, UserLogin, UserProfileUpdate, UserResponse
 from backend.security import create_access_token, hash_password, verify_password
+from backend.utils import load_serialized_list
 
 
 router = APIRouter()
-
-
-def _load_list(raw_value: str) -> list[str]:
-    if not raw_value:
-        return []
-
-    try:
-        value = json.loads(raw_value)
-        return value if isinstance(value, list) else []
-    except json.JSONDecodeError:
-        try:
-            value = ast.literal_eval(raw_value)
-            return value if isinstance(value, list) else []
-        except (ValueError, SyntaxError):
-            return []
-
 
 def _user_to_response(user: User) -> UserResponse:
     return UserResponse(
         id=user.id,
         email=user.email,
-        preferences=_load_list(user.preferences),
-        allergies=_load_list(user.allergies),
+        preferences=load_serialized_list(user.preferences),
+        allergies=load_serialized_list(user.allergies),
         created_at=user.created_at,
     )
 

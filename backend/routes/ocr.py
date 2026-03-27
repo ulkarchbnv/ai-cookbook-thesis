@@ -1,4 +1,3 @@
-import ast
 import json
 
 from fastapi import APIRouter, Depends, File, UploadFile, status
@@ -13,30 +12,17 @@ from backend.schemas import (
     SavedOcrExtractionResponse,
 )
 from backend.services.ocr_service import extract_nutrition_label
+from backend.utils import load_serialized_value
 
 
 router = APIRouter(prefix="/ocr", tags=["ocr"])
-
-
-def _load_serialized_value(raw_value: str, fallback):
-    if raw_value is None:
-        return fallback
-
-    try:
-        return json.loads(raw_value)
-    except (TypeError, json.JSONDecodeError):
-        try:
-            return ast.literal_eval(raw_value)
-        except (ValueError, SyntaxError):
-            return fallback
-
 
 def _ocr_extraction_to_response(extraction: OcrExtraction) -> SavedOcrExtractionResponse:
     return SavedOcrExtractionResponse(
         id=extraction.id,
         source_filename=extraction.source_filename,
         raw_text=extraction.raw_text,
-        structured_nutrition=_load_serialized_value(extraction.structured_nutrition, {}),
+        structured_nutrition=load_serialized_value(extraction.structured_nutrition, {}),
         created_at=extraction.created_at,
     )
 

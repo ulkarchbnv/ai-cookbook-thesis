@@ -1,4 +1,3 @@
-import ast
 import json
 
 from fastapi import APIRouter, Depends, status
@@ -9,33 +8,20 @@ from backend.dependencies import get_current_user
 from backend.models import Recipe, User
 from backend.schemas import RecipeRequest, RecipeResponse, SavedRecipeCreate, SavedRecipeResponse
 from backend.services.llm_service import generate_structured_recipe
+from backend.utils import load_serialized_value
 
 
 router = APIRouter()
-
-
-def _load_serialized_value(raw_value: str, fallback):
-    if raw_value is None:
-        return fallback
-
-    try:
-        return json.loads(raw_value)
-    except (TypeError, json.JSONDecodeError):
-        try:
-            return ast.literal_eval(raw_value)
-        except (ValueError, SyntaxError):
-            return fallback
-
 
 def _recipe_to_response(recipe: Recipe) -> SavedRecipeResponse:
     return SavedRecipeResponse(
         id=recipe.id,
         title=recipe.title,
-        ingredients=_load_serialized_value(recipe.ingredients, []),
-        preferences=_load_serialized_value(recipe.preferences, []),
-        allergies=_load_serialized_value(recipe.allergies, []),
-        steps=_load_serialized_value(recipe.steps, []),
-        nutrition=_load_serialized_value(
+        ingredients=load_serialized_value(recipe.ingredients, []),
+        preferences=load_serialized_value(recipe.preferences, []),
+        allergies=load_serialized_value(recipe.allergies, []),
+        steps=load_serialized_value(recipe.steps, []),
+        nutrition=load_serialized_value(
             recipe.nutrition,
             {"calories": 0, "protein": "0g", "carbs": "0g", "fat": "0g"},
         ),

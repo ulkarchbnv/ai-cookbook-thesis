@@ -132,6 +132,11 @@ function GenerateRecipePage({ token, profile }) {
       {recipe && (
         <div className="recipe-card">
           <h2>{recipe.title}</h2>
+          {recipe.warnings?.map((warning, index) => (
+            <p key={index} className="message">
+              {warning}
+            </p>
+          ))}
           <p><strong>Ingredients:</strong> {recipe.ingredients.join(", ")}</p>
           <p><strong>Preferences:</strong> {recipe.preferences.join(", ") || "None"}</p>
           <p><strong>Allergies:</strong> {recipe.allergies.join(", ") || "None"}</p>

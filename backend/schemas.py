@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from datetime import datetime
 
 
@@ -40,9 +40,29 @@ class NutritionEstimate(BaseModel):
 
 
 class RecipeRequest(BaseModel):
-    ingredients: list[str]
+    ingredients: list[str] = Field(min_length=1, max_length=25)
     preferences: list[str] = Field(default_factory=list)
     allergies: list[str] = Field(default_factory=list)
+
+    @field_validator("ingredients", "preferences", "allergies")
+    @classmethod
+    def validate_string_list(cls, values: list[str]) -> list[str]:
+        cleaned_values: list[str] = []
+        for value in values:
+            cleaned = value.strip()
+            if not cleaned:
+                continue
+            if len(cleaned) > 80:
+                raise ValueError("Each item must be 80 characters or fewer.")
+            cleaned_values.append(cleaned)
+        return cleaned_values
+
+    @field_validator("preferences", "allergies")
+    @classmethod
+    def validate_optional_list_size(cls, values: list[str]) -> list[str]:
+        if len(values) > 10:
+            raise ValueError("No more than 10 entries are allowed.")
+        return values
 
 
 class RecipeResponse(BaseModel):
@@ -52,6 +72,7 @@ class RecipeResponse(BaseModel):
     allergies: list[str]
     steps: list[str]
     nutrition_estimate: NutritionEstimate
+    warnings: list[str] = Field(default_factory=list)
 
 
 class SavedRecipeCreate(BaseModel):

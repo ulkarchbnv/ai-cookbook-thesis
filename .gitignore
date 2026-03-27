@@ -38,3 +38,7 @@ Thumbs.db
 .vscode/
 .vscode/settings.json
 .vscode/*.log
+
+chroma_db/
+backend/data/recipes_ingredients.csv
+backend/data/recipes_subset.json
