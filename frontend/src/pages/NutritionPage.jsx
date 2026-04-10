@@ -3,6 +3,7 @@ import { apiFetch } from "../lib/api";
 
 function NutritionPage({ token }) {
   const [selectedFile, setSelectedFile] = useState(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState("");
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
   const [error, setError] = useState("");
@@ -39,6 +40,20 @@ function NutritionPage({ token }) {
 
     loadHistory();
   }, [token]);
+
+  useEffect(() => {
+    if (!selectedFile) {
+      setImagePreviewUrl("");
+      return undefined;
+    }
+
+    const nextPreviewUrl = URL.createObjectURL(selectedFile);
+    setImagePreviewUrl(nextPreviewUrl);
+
+    return () => {
+      URL.revokeObjectURL(nextPreviewUrl);
+    };
+  }, [selectedFile]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -127,6 +142,18 @@ function NutritionPage({ token }) {
       {result && (
         <div className="recipe-card">
           <h2>Structured Nutrition</h2>
+          {imagePreviewUrl && (
+            <div className="result-block">
+              <h3 className="section-title">Uploaded Label</h3>
+              <img
+                src={imagePreviewUrl}
+                alt={selectedFile?.name ? `Preview of ${selectedFile.name}` : "Nutrition label preview"}
+                className="ocr-image-preview"
+              />
+              {selectedFile && <p className="message">Selected file: {selectedFile.name}</p>}
+            </div>
+          )}
+
           <p><strong>Product Name:</strong> {result.structured_nutrition.product_name || "Not found"}</p>
           <p><strong>Serving Size:</strong> {result.structured_nutrition.serving_size || "Not found"}</p>
           <p><strong>Calories:</strong> {result.structured_nutrition.calories ?? "Not found"}</p>

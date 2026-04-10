@@ -13,10 +13,8 @@ class Settings:
             "OPENAI_EMBEDDING_MODEL",
             "text-embedding-3-small",
         )
-        self.tesseract_cmd = os.getenv(
-            "TESSERACT_CMD",
-            r"C:\Program Files\Tesseract-OCR\tesseract.exe",
-        )
+        self.ocr_provider = os.getenv("OCR_PROVIDER", "google_vision")
+        self.google_application_credentials = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
         self.database_url = os.getenv("DATABASE_URL") or "sqlite:///./ai_cookbook.db"
         self.secret_key = os.getenv("SECRET_KEY")
         if not self.secret_key:

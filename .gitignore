@@ -42,3 +42,6 @@ Thumbs.db
 chroma_db/
 backend/data/recipes_ingredients.csv
 backend/data/recipes_subset.json
+
+
+backend/google-vision
