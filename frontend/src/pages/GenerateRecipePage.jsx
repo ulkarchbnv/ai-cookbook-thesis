@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { apiFetch } from "../lib/api";
+import { apiFetch, buildApiUrl } from "../lib/api";
 
 function GenerateRecipePage({ token, profile }) {
   const [ingredients, setIngredients] = useState("");
@@ -132,6 +132,13 @@ function GenerateRecipePage({ token, profile }) {
       {recipe && (
         <div className="recipe-card">
           <h2>{recipe.title}</h2>
+          {recipe.image_url && (
+            <img
+              src={buildApiUrl(recipe.image_url)}
+              alt={`Generated thumbnail for ${recipe.title}`}
+              className="recipe-image-preview"
+            />
+          )}
           {recipe.warnings?.map((warning, index) => (
             <p key={index} className="message">
               {warning}

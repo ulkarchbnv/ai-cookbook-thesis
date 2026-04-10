@@ -23,6 +23,12 @@ def ensure_recipe_columns() -> None:
         statements.append("ALTER TABLE recipes ADD COLUMN preferences TEXT NOT NULL DEFAULT '[]'")
     if "allergies" not in existing_columns:
         statements.append("ALTER TABLE recipes ADD COLUMN allergies TEXT NOT NULL DEFAULT '[]'")
+    if "image_cache_key" not in existing_columns:
+        statements.append("ALTER TABLE recipes ADD COLUMN image_cache_key VARCHAR")
+    if "image_path" not in existing_columns:
+        statements.append("ALTER TABLE recipes ADD COLUMN image_path VARCHAR")
+    if "image_prompt" not in existing_columns:
+        statements.append("ALTER TABLE recipes ADD COLUMN image_prompt TEXT")
 
     if not statements:
         return
@@ -30,6 +36,10 @@ def ensure_recipe_columns() -> None:
     with engine.begin() as connection:
         for statement in statements:
             connection.execute(text(statement))
+        if "image_cache_key" not in existing_columns:
+            connection.execute(
+                text("CREATE INDEX IF NOT EXISTS ix_recipes_image_cache_key ON recipes (image_cache_key)")
+            )
 
 
 def ensure_user_profile_columns() -> None:

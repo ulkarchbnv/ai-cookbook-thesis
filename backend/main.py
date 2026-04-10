@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 from backend.config import settings
 from backend.database import Base, engine, ensure_recipe_columns, ensure_user_profile_columns
@@ -8,6 +10,7 @@ from backend.routes import auth, ocr, recipes
 
 
 app = FastAPI(title="AI Cookbook API")
+Path("backend/media").mkdir(parents=True, exist_ok=True)
 
 app.add_middleware(
     CORSMiddleware,
@@ -56,6 +59,9 @@ def on_startup() -> None:
     Base.metadata.create_all(bind=engine)
     ensure_recipe_columns()
     ensure_user_profile_columns()
+
+
+app.mount("/media", StaticFiles(directory="backend/media"), name="media")
 
 
 @app.get("/")

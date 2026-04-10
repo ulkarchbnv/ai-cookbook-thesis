@@ -33,6 +33,9 @@ class Recipe(Base):
     allergies = Column(Text, nullable=False, default="[]")
     steps = Column(Text, nullable=False)
     nutrition = Column(Text, nullable=False)
+    image_cache_key = Column(String, nullable=True, index=True)
+    image_path = Column(String, nullable=True)
+    image_prompt = Column(Text, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)

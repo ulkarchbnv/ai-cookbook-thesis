@@ -72,6 +72,8 @@ class RecipeResponse(BaseModel):
     allergies: list[str]
     steps: list[str]
     nutrition_estimate: NutritionEstimate
+    image_url: str | None = None
+    image_cache_key: str | None = None
     warnings: list[str] = Field(default_factory=list)
 
 
@@ -94,6 +96,8 @@ class SavedRecipeResponse(BaseModel):
     allergies: list[str]
     steps: list[str]
     nutrition: NutritionEstimate
+    image_url: str | None = None
+    image_cache_key: str | None = None
     created_at: datetime
 
 

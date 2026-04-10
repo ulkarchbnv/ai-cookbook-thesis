@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiFetch } from "../lib/api";
+import { apiFetch, buildApiUrl } from "../lib/api";
 
 function SavedRecipesPage({ token }) {
   const [recipes, setRecipes] = useState([]);
@@ -54,6 +54,13 @@ function SavedRecipesPage({ token }) {
       {recipes.map((recipe) => (
         <div key={recipe.id} className="recipe-card">
           <h2>{recipe.title}</h2>
+          {recipe.image_url && (
+            <img
+              src={buildApiUrl(recipe.image_url)}
+              alt={`Saved thumbnail for ${recipe.title}`}
+              className="recipe-image-preview"
+            />
+          )}
           <p><strong>Ingredients:</strong> {recipe.ingredients.join(", ")}</p>
           <p><strong>Preferences:</strong> {recipe.preferences.join(", ") || "None"}</p>
           <p><strong>Allergies:</strong> {recipe.allergies.join(", ") || "None"}</p>

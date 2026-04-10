@@ -13,6 +13,7 @@ class Settings:
             "OPENAI_EMBEDDING_MODEL",
             "text-embedding-3-small",
         )
+        self.openai_image_model = os.getenv("OPENAI_IMAGE_MODEL", "gpt-image-1-mini")
         self.ocr_provider = os.getenv("OCR_PROVIDER", "google_vision")
         self.google_application_credentials = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
         self.database_url = os.getenv("DATABASE_URL") or "sqlite:///./ai_cookbook.db"
@@ -32,6 +33,10 @@ class Settings:
         self.chroma_collection_name = os.getenv(
             "CHROMA_COLLECTION_NAME",
             "recipe_knowledge_base",
+        )
+        self.recipe_thumbnail_directory = os.getenv(
+            "RECIPE_THUMBNAIL_DIRECTORY",
+            "backend/media/recipe_thumbnails",
         )
         self.rag_candidate_count = int(os.getenv("RAG_CANDIDATE_COUNT", "10"))
         self.rag_context_count = int(os.getenv("RAG_CONTEXT_COUNT", "3"))
