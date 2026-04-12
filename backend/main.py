@@ -8,6 +8,8 @@ from backend.database import Base, engine
 from backend.rate_limit import RateLimitMiddleware, RateLimitRule
 from backend.routes import auth, ocr, recipes
 
+from backend.routes import auth, ocr, rag_debug, recipes
+
 
 app = FastAPI(title="AI Cookbook API")
 Path("backend/media").mkdir(parents=True, exist_ok=True)
@@ -72,3 +74,7 @@ def read_root():
 app.include_router(auth.router)
 app.include_router(recipes.router)
 app.include_router(ocr.router)
+app.include_router(auth.router)
+app.include_router(recipes.router)
+app.include_router(ocr.router)
+app.include_router(rag_debug.router)
