@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
 from backend.config import settings
-from backend.database import Base, engine, ensure_recipe_columns, ensure_user_profile_columns
+from backend.database import Base, engine
 from backend.rate_limit import RateLimitMiddleware, RateLimitRule
 from backend.routes import auth, ocr, recipes
 
@@ -57,8 +57,6 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup() -> None:
     Base.metadata.create_all(bind=engine)
-    ensure_recipe_columns()
-    ensure_user_profile_columns()
 
 
 app.mount("/media", StaticFiles(directory="backend/media"), name="media")

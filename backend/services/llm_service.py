@@ -196,19 +196,31 @@ def generate_structured_recipe(request: RecipeRequest) -> RecipeResponse:
 
     try:
         last_violations: list[str] = []
+        messages: list[dict] = [{"role": "user", "content": prompt}]
+
         for _ in range(2):
-            response = client.responses.create(model=settings.openai_model, input=prompt)
-            recipe_text = _strip_code_fences(response.output_text)
+            response = client.chat.completions.create(
+                model=settings.openai_model,
+                messages=messages,
+                temperature=0.7,
+            )
+            recipe_text = _strip_code_fences(
+                response.choices[0].message.content or ""
+            )
             recipe_json = json.loads(recipe_text)
             last_violations = _find_output_restriction_violations(recipe_json, restrictions)
+
             if not last_violations:
                 recipe_json["warnings"] = warnings
                 return RecipeResponse.model_validate(recipe_json)
-            prompt += (
-                "\n\nThe previous output violated these restrictions and must be corrected: "
+
+            violation_note = (
+                "The previous output violated these restrictions and must be corrected: "
                 + "; ".join(last_violations)
                 + ". Regenerate the recipe and avoid those restricted terms."
             )
+            messages.append({"role": "assistant", "content": recipe_text})
+            messages.append({"role": "user", "content": violation_note})
 
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,

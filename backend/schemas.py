@@ -66,6 +66,7 @@ class RecipeRequest(BaseModel):
 
 
 class RecipeResponse(BaseModel):
+    generated_recipe_id: int | None = None
     title: str
     ingredients: list[str]
     preferences: list[str]
@@ -78,12 +79,7 @@ class RecipeResponse(BaseModel):
 
 
 class SavedRecipeCreate(BaseModel):
-    title: str
-    ingredients: list[str]
-    preferences: list[str] = Field(default_factory=list)
-    allergies: list[str] = Field(default_factory=list)
-    steps: list[str]
-    nutrition: NutritionEstimate
+    generated_recipe_id: int
 
 
 class SavedRecipeResponse(BaseModel):
@@ -98,6 +94,26 @@ class SavedRecipeResponse(BaseModel):
     nutrition: NutritionEstimate
     image_url: str | None = None
     image_cache_key: str | None = None
+    saved_at: datetime | None = None
+    created_at: datetime
+
+
+class GeneratedRecipeHistoryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    fingerprint: str
+    title: str
+    ingredients: list[str]
+    preferences: list[str]
+    allergies: list[str]
+    steps: list[str]
+    nutrition: NutritionEstimate
+    warnings: list[str]
+    image_url: str | None = None
+    image_cache_key: str | None = None
+    is_saved: bool
+    saved_at: datetime | None = None
     created_at: datetime
 
 

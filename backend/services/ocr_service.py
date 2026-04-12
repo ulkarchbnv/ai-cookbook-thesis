@@ -2,7 +2,7 @@ import json
 
 from fastapi import HTTPException, UploadFile, status
 from openai import OpenAI
-
+import re
 from backend.config import settings
 from backend.schemas import NutritionLabelData, OcrExtractionResponse
 from backend.services.ocr_google_vision_provider import extract_text_with_google_vision
@@ -11,6 +11,12 @@ from backend.services.ocr_image_processing import (
     validate_image_file,
     validate_image_size,
 )
+
+def _strip_nutrition_fences(raw_text: str) -> str:
+    cleaned = raw_text.strip()
+    cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
+    cleaned = re.sub(r"\s*```$", "", cleaned)
+    return cleaned.strip()
 
 
 def _structure_nutrition_text(raw_text: str) -> NutritionLabelData:
@@ -50,12 +56,13 @@ OCR text:
     client = OpenAI(api_key=settings.openai_api_key)
 
     try:
-        response = client.responses.create(model=settings.openai_model, input=prompt)
-        structured_text = (
-            response.output_text.strip()
-            .removeprefix("```json")
-            .removesuffix("```")
-            .strip()
+        response = client.chat.completions.create(
+            model=settings.openai_model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.0,
+        )
+        structured_text = _strip_nutrition_fences(
+            response.choices[0].message.content or ""
         )
         return NutritionLabelData.model_validate(json.loads(structured_text))
     except Exception as exc:

@@ -61,6 +61,8 @@ function SavedRecipesPage({ token }) {
               className="recipe-image-preview"
             />
           )}
+          <p><strong>Generated:</strong> {new Date(recipe.created_at).toLocaleString()}</p>
+          {recipe.saved_at && <p><strong>Saved:</strong> {new Date(recipe.saved_at).toLocaleString()}</p>}
           <p><strong>Ingredients:</strong> {recipe.ingredients.join(", ")}</p>
           <p><strong>Preferences:</strong> {recipe.preferences.join(", ") || "None"}</p>
           <p><strong>Allergies:</strong> {recipe.allergies.join(", ") || "None"}</p>

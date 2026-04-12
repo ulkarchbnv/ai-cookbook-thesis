@@ -6,6 +6,7 @@ import GenerateRecipePage from "./pages/GenerateRecipePage";
 import SavedRecipesPage from "./pages/SavedRecipesPage";
 import LoginPage from "./pages/LoginPage";
 import NutritionPage from "./pages/NutritionPage";
+import RecipeHistoryPage from "./pages/RecipeHistoryPage";
 
 function App() {
   const [token, setToken] = useState(() => localStorage.getItem("token"));
@@ -51,6 +52,9 @@ function App() {
             <NavLink to="/saved" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
               Saved Recipes
             </NavLink>
+            <NavLink to="/history" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
+              History
+            </NavLink>
             <NavLink to="/login" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
               {token ? "Account" : "Login"}
             </NavLink>
@@ -67,6 +71,7 @@ function App() {
           <Route path="/generate" element={<GenerateRecipePage token={token} profile={profile} />} />
           <Route path="/nutrition" element={<NutritionPage token={token} />} />
           <Route path="/saved" element={<SavedRecipesPage token={token} />} />
+          <Route path="/history" element={<RecipeHistoryPage token={token} />} />
           <Route
             path="/login"
             element={

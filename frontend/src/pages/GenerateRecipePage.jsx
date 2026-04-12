@@ -31,6 +31,7 @@ function GenerateRecipePage({ token, profile }) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(payload),
       });
@@ -58,12 +59,7 @@ function GenerateRecipePage({ token, profile }) {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          title: recipe.title,
-          ingredients: recipe.ingredients,
-          preferences: recipe.preferences,
-          allergies: recipe.allergies,
-          steps: recipe.steps,
-          nutrition: recipe.nutrition_estimate,
+          generated_recipe_id: recipe.generated_recipe_id,
         }),
       });
 
@@ -164,9 +160,16 @@ function GenerateRecipePage({ token, profile }) {
 
           {token ? (
             <div className="inline-actions">
-              <button type="button" onClick={saveRecipe} disabled={saveLoading}>
+              <button
+                type="button"
+                onClick={saveRecipe}
+                disabled={saveLoading || !recipe.generated_recipe_id}
+              >
                 {saveLoading ? "Saving..." : "Save Recipe"}
               </button>
+              {!recipe.generated_recipe_id && (
+                <p className="message">Generate while logged in to store this recipe in your history and save it.</p>
+              )}
               {saveMessage && <p className="message">{saveMessage}</p>}
             </div>
           ) : (
