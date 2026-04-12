@@ -1,26 +1,40 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import { apiFetch, buildApiUrl } from "../lib/api";
 
-function RecipeHistoryPage({ token }) {
+function NutritionGrid({ nutrition }) {
+  const fields = [
+    { label: "Calories", value: nutrition.calories },
+    { label: "Protein", value: nutrition.protein },
+    { label: "Carbs", value: nutrition.carbs },
+    { label: "Fat", value: nutrition.fat },
+  ];
+  return (
+    <div className="nutrition-grid">
+      {fields.map(({ label, value }) => (
+        <div key={label} className="nutrition-cell">
+          <div className="cell-label">{label}</div>
+          <div className="cell-value">{value}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RecipeHistoryPage() {
+  const { token } = useAuth();
   const [historyEntries, setHistoryEntries] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!token) {
-      setHistoryEntries([]);
-      return;
-    }
-
-    const loadHistory = async () => {
+    if (!token) { setHistoryEntries([]); return; }
+    const load = async () => {
       setLoading(true);
       setError("");
-
       try {
         const data = await apiFetch("/recipes/history", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
         setHistoryEntries(data);
       } catch (err) {
@@ -29,15 +43,14 @@ function RecipeHistoryPage({ token }) {
         setLoading(false);
       }
     };
-
-    loadHistory();
+    load();
   }, [token]);
 
   if (!token) {
     return (
       <div className="page-card">
         <h1>Recipe History</h1>
-        <p>Please log in first to view your generated recipe history.</p>
+        <p className="section-copy">Please log in to view your recipe history.</p>
       </div>
     );
   }
@@ -46,10 +59,10 @@ function RecipeHistoryPage({ token }) {
     <div className="page-card">
       <h1>Recipe History</h1>
       <p className="section-copy">
-        This page shows all generated recipes for your account, including recipes that were not saved.
+        All generated recipes for your account, including those that were not saved.
       </p>
 
-      {loading && <p>Loading recipe history...</p>}
+      {loading && <p className="section-copy">Loading...</p>}
       {error && <p className="message error">{error}</p>}
       {!loading && !error && historyEntries.length === 0 && (
         <p className="empty-state">No generated recipe history yet.</p>
@@ -67,36 +80,59 @@ function RecipeHistoryPage({ token }) {
           {entry.image_url && (
             <img
               src={buildApiUrl(entry.image_url)}
-              alt={`History thumbnail for ${entry.title}`}
+              alt={`Thumbnail for ${entry.title}`}
               className="recipe-image-preview"
             />
           )}
 
-          <p><strong>Generated:</strong> {new Date(entry.created_at).toLocaleString()}</p>
-          {entry.saved_at && <p><strong>Saved:</strong> {new Date(entry.saved_at).toLocaleString()}</p>}
-          <p><strong>Ingredients:</strong> {entry.ingredients.join(", ")}</p>
-          <p><strong>Preferences:</strong> {entry.preferences.join(", ") || "None"}</p>
-          <p><strong>Allergies:</strong> {entry.allergies.join(", ") || "None"}</p>
+          <p style={{ fontSize: "0.85rem", color: "#7a92a8", margin: "0 0 0.75rem" }}>
+            {new Date(entry.created_at).toLocaleString()}
+            {entry.saved_at && ` · Saved ${new Date(entry.saved_at).toLocaleDateString()}`}
+          </p>
 
-          {entry.warnings?.map((warning, index) => (
-            <p key={`${entry.id}-warning-${index}`} className="message">
-              {warning}
-            </p>
-          ))}
+          <div className="tag-row">
+            {entry.ingredients.map((item) => (
+              <span key={item} className="tag">{item}</span>
+            ))}
+          </div>
+
+          {entry.preferences?.length > 0 && (
+            <div className="tag-row" style={{ marginTop: "0.35rem" }}>
+              {entry.preferences.map((item) => (
+                <span key={item} className="tag">{item}</span>
+              ))}
+            </div>
+          )}
+
+          {entry.allergies?.length > 0 && (
+            <div className="tag-row" style={{ marginTop: "0.35rem" }}>
+              {entry.allergies.map((item) => (
+                <span key={item} className="tag allergy">{item}</span>
+              ))}
+            </div>
+          )}
+
+          {entry.warnings?.length > 0 && (
+            <div style={{ margin: "0.5rem 0" }}>
+              {entry.warnings.map((warning, index) => (
+                <p key={`${entry.id}-w-${index}`} className="message error">{warning}</p>
+              ))}
+            </div>
+          )}
 
           <div className="result-block">
-            <h3 className="section-title">Steps</h3>
-            <ul className="result-list">
+            <p className="section-title">Preparation Steps</p>
+            <ol className="result-list">
               {entry.steps.map((step, index) => (
                 <li key={`${entry.id}-${index}`}>{step}</li>
               ))}
-            </ul>
+            </ol>
           </div>
 
-          <p><strong>Calories:</strong> {entry.nutrition.calories}</p>
-          <p><strong>Protein:</strong> {entry.nutrition.protein}</p>
-          <p><strong>Carbs:</strong> {entry.nutrition.carbs}</p>
-          <p><strong>Fat:</strong> {entry.nutrition.fat}</p>
+          <div className="result-block">
+            <p className="section-title">Nutrition Estimate</p>
+            <NutritionGrid nutrition={entry.nutrition} />
+          </div>
         </div>
       ))}
     </div>

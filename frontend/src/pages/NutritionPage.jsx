@@ -1,7 +1,32 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../lib/api";
 
-function NutritionPage({ token }) {
+function NutritionGrid({ nutrition }) {
+  const fields = [
+    { label: "Calories", value: nutrition.calories },
+    { label: "Protein (g)", value: nutrition.protein_g },
+    { label: "Carbs (g)", value: nutrition.carbs_g },
+    { label: "Fat (g)", value: nutrition.fat_g },
+    { label: "Sugar (g)", value: nutrition.sugar_g },
+    { label: "Sodium (mg)", value: nutrition.sodium_mg },
+    { label: "Fiber (g)", value: nutrition.fiber_g },
+  ];
+
+  return (
+    <div className="nutrition-grid">
+      {fields.map(({ label, value }) => (
+        <div key={label} className="nutrition-cell">
+          <div className="cell-label">{label}</div>
+          <div className="cell-value">{value ?? "—"}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function NutritionPage() {
+  const { token } = useAuth();
   const [selectedFile, setSelectedFile] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState("");
   const [result, setResult] = useState(null);
@@ -10,6 +35,7 @@ function NutritionPage({ token }) {
   const [loading, setLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
+  const [isSaved, setIsSaved] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
 
@@ -23,12 +49,9 @@ function NutritionPage({ token }) {
     const loadHistory = async () => {
       setHistoryLoading(true);
       setHistoryError("");
-
       try {
         const data = await apiFetch("/ocr/history", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
         setHistory(data);
       } catch (err) {
@@ -46,13 +69,9 @@ function NutritionPage({ token }) {
       setImagePreviewUrl("");
       return undefined;
     }
-
-    const nextPreviewUrl = URL.createObjectURL(selectedFile);
-    setImagePreviewUrl(nextPreviewUrl);
-
-    return () => {
-      URL.revokeObjectURL(nextPreviewUrl);
-    };
+    const url = URL.createObjectURL(selectedFile);
+    setImagePreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
   }, [selectedFile]);
 
   const handleSubmit = async (event) => {
@@ -60,6 +79,7 @@ function NutritionPage({ token }) {
     setError("");
     setResult(null);
     setSaveMessage("");
+    setIsSaved(false);
 
     if (!selectedFile) {
       setError("Please choose a nutrition label image first.");
@@ -68,7 +88,6 @@ function NutritionPage({ token }) {
 
     const formData = new FormData();
     formData.append("file", selectedFile);
-
     setLoading(true);
 
     try {
@@ -85,15 +104,13 @@ function NutritionPage({ token }) {
   };
 
   const saveExtraction = async () => {
-    if (!token || !result || !selectedFile) {
-      return;
-    }
+    if (!token || !result || !selectedFile) return;
 
     setSaveLoading(true);
     setSaveMessage("");
 
     try {
-      const savedExtraction = await apiFetch("/ocr/save", {
+      const saved = await apiFetch("/ocr/save", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -105,8 +122,9 @@ function NutritionPage({ token }) {
           structured_nutrition: result.structured_nutrition,
         }),
       });
-      setHistory((currentHistory) => [savedExtraction, ...currentHistory]);
-      setSaveMessage("Extraction saved to your OCR history.");
+      setHistory((prev) => [saved, ...prev]);
+      setIsSaved(true);
+      setSaveMessage("Extraction saved to your history.");
     } catch (err) {
       setSaveMessage(err.message);
     } finally {
@@ -117,22 +135,24 @@ function NutritionPage({ token }) {
   return (
     <div className="page-card">
       <h1>Nutrition Info</h1>
-      <p className="section-copy">Upload a nutrition label image to extract and organize its nutrition data.</p>
-      {token ? (
-        <p className="section-copy">When you are logged in, you can save any extracted label into your OCR history.</p>
-      ) : (
-        <p className="section-copy">Log in if you want the extracted nutrition labels to be saved to your history.</p>
-      )}
+      <p className="section-copy">
+        Upload a nutrition label image to extract and structure its data using OCR and an LLM.
+        {token
+          ? " Extracted results can be saved to your history."
+          : " Log in to save extracted labels to your history."}
+      </p>
 
       <form onSubmit={handleSubmit} className="form-stack">
-        <label htmlFor="nutrition-image">Nutrition Label Image</label>
-        <input
-          id="nutrition-image"
-          type="file"
-          accept="image/*"
-          onChange={(event) => setSelectedFile(event.target.files?.[0] || null)}
-        />
-        <button type="submit" disabled={loading}>
+        <div className="field-group">
+          <label htmlFor="nutrition-image">Nutrition Label Image</label>
+          <input
+            id="nutrition-image"
+            type="file"
+            accept="image/*"
+            onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+          />
+        </div>
+        <button type="submit" disabled={loading || !selectedFile}>
           {loading ? "Extracting..." : "Extract Nutrition"}
         </button>
       </form>
@@ -141,67 +161,93 @@ function NutritionPage({ token }) {
 
       {result && (
         <div className="recipe-card">
-          <h2>Structured Nutrition</h2>
+          <h2>Extracted Nutrition</h2>
+
           {imagePreviewUrl && (
-            <div className="result-block">
-              <h3 className="section-title">Uploaded Label</h3>
+            <div className="result-block" style={{ paddingTop: 0, borderTop: "none" }}>
               <img
                 src={imagePreviewUrl}
-                alt={selectedFile?.name ? `Preview of ${selectedFile.name}` : "Nutrition label preview"}
+                alt={selectedFile?.name ? `Preview of ${selectedFile.name}` : "Label preview"}
                 className="ocr-image-preview"
               />
-              {selectedFile && <p className="message">Selected file: {selectedFile.name}</p>}
+              <p style={{ fontSize: "0.8rem", color: "#7a92a8", margin: "0 0 0.75rem" }}>
+                {selectedFile?.name}
+              </p>
             </div>
           )}
 
-          <p><strong>Product Name:</strong> {result.structured_nutrition.product_name || "Not found"}</p>
-          <p><strong>Serving Size:</strong> {result.structured_nutrition.serving_size || "Not found"}</p>
-          <p><strong>Calories:</strong> {result.structured_nutrition.calories ?? "Not found"}</p>
-          <p><strong>Protein (g):</strong> {result.structured_nutrition.protein_g ?? "Not found"}</p>
-          <p><strong>Carbs (g):</strong> {result.structured_nutrition.carbs_g ?? "Not found"}</p>
-          <p><strong>Fat (g):</strong> {result.structured_nutrition.fat_g ?? "Not found"}</p>
-          <p><strong>Sugar (g):</strong> {result.structured_nutrition.sugar_g ?? "Not found"}</p>
-          <p><strong>Sodium (mg):</strong> {result.structured_nutrition.sodium_mg ?? "Not found"}</p>
-          <p><strong>Fiber (g):</strong> {result.structured_nutrition.fiber_g ?? "Not found"}</p>
+          {result.structured_nutrition.product_name && (
+            <p style={{ margin: "0 0 0.25rem" }}>
+              <strong>{result.structured_nutrition.product_name}</strong>
+              {result.structured_nutrition.serving_size && (
+                <span style={{ color: "#5b6f85", fontSize: "0.9rem" }}>
+                  {" "}· {result.structured_nutrition.serving_size} per serving
+                </span>
+              )}
+            </p>
+          )}
 
-          <h3 className="section-title">Raw OCR Text</h3>
-          <pre className="ocr-output">{result.raw_text}</pre>
+          <NutritionGrid nutrition={result.structured_nutrition} />
+
+          <div className="result-block">
+            <p className="section-title">Raw OCR Text</p>
+            <pre className="ocr-output">{result.raw_text}</pre>
+          </div>
+
+          <hr className="card-divider" />
 
           {token ? (
             <div className="inline-actions">
-              <button type="button" onClick={saveExtraction} disabled={saveLoading}>
-                {saveLoading ? "Saving..." : "Save Extraction"}
+              <button
+                type="button"
+                onClick={saveExtraction}
+                disabled={saveLoading || isSaved}
+              >
+                {isSaved ? "Saved ✓" : saveLoading ? "Saving..." : "Save Extraction"}
               </button>
-              {saveMessage && <p className="message">{saveMessage}</p>}
+              {saveMessage && (
+                <p className={`message ${isSaved ? "success" : "error"}`}>
+                  {saveMessage}
+                </p>
+              )}
             </div>
           ) : (
-            <p className="message">Log in to save this extracted nutrition data.</p>
+            <p className="message">Log in to save this extraction.</p>
           )}
         </div>
       )}
 
       {token && (
-        <div className="recipe-card">
-          <h2>Saved OCR History</h2>
-          {historyLoading && <p>Loading saved extractions...</p>}
+        <div className="recipe-card" style={{ marginTop: "1rem" }}>
+          <h2>OCR History</h2>
+
+          {historyLoading && <p className="section-copy">Loading...</p>}
           {historyError && <p className="message error">{historyError}</p>}
           {!historyLoading && !historyError && history.length === 0 && (
-            <p className="empty-state">No saved nutrition label extractions yet.</p>
+            <p className="empty-state">No saved extractions yet.</p>
           )}
 
           {history.map((entry) => (
             <div key={entry.id} className="result-block">
-              <h3 className="section-title">{entry.source_filename}</h3>
-              <p><strong>Saved:</strong> {new Date(entry.created_at).toLocaleString()}</p>
-              <p><strong>Product Name:</strong> {entry.structured_nutrition.product_name || "Not found"}</p>
-              <p><strong>Serving Size:</strong> {entry.structured_nutrition.serving_size || "Not found"}</p>
-              <p><strong>Calories:</strong> {entry.structured_nutrition.calories ?? "Not found"}</p>
-              <p><strong>Protein (g):</strong> {entry.structured_nutrition.protein_g ?? "Not found"}</p>
-              <p><strong>Carbs (g):</strong> {entry.structured_nutrition.carbs_g ?? "Not found"}</p>
-              <p><strong>Fat (g):</strong> {entry.structured_nutrition.fat_g ?? "Not found"}</p>
-              <p><strong>Sugar (g):</strong> {entry.structured_nutrition.sugar_g ?? "Not found"}</p>
-              <p><strong>Sodium (mg):</strong> {entry.structured_nutrition.sodium_mg ?? "Not found"}</p>
-              <p><strong>Fiber (g):</strong> {entry.structured_nutrition.fiber_g ?? "Not found"}</p>
+              <div className="history-header">
+                <h3>{entry.source_filename}</h3>
+                <span className="history-badge saved">
+                  {new Date(entry.created_at).toLocaleDateString()}
+                </span>
+              </div>
+
+              {entry.structured_nutrition.product_name && (
+                <p style={{ margin: "0 0 0.5rem", fontSize: "0.9rem" }}>
+                  <strong>{entry.structured_nutrition.product_name}</strong>
+                  {entry.structured_nutrition.serving_size && (
+                    <span style={{ color: "#5b6f85" }}>
+                      {" "}· {entry.structured_nutrition.serving_size} per serving
+                    </span>
+                  )}
+                </p>
+              )}
+
+              <NutritionGrid nutrition={entry.structured_nutrition} />
             </div>
           ))}
         </div>

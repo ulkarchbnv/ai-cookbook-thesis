@@ -1,26 +1,40 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import { apiFetch, buildApiUrl } from "../lib/api";
 
-function SavedRecipesPage({ token }) {
+function NutritionGrid({ nutrition }) {
+  const fields = [
+    { label: "Calories", value: nutrition.calories },
+    { label: "Protein", value: nutrition.protein },
+    { label: "Carbs", value: nutrition.carbs },
+    { label: "Fat", value: nutrition.fat },
+  ];
+  return (
+    <div className="nutrition-grid">
+      {fields.map(({ label, value }) => (
+        <div key={label} className="nutrition-cell">
+          <div className="cell-label">{label}</div>
+          <div className="cell-value">{value}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SavedRecipesPage() {
+  const { token } = useAuth();
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!token) {
-      setRecipes([]);
-      return;
-    }
-
-    const loadRecipes = async () => {
+    if (!token) { setRecipes([]); return; }
+    const load = async () => {
       setLoading(true);
       setError("");
-
       try {
         const data = await apiFetch("/recipes", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
         setRecipes(data);
       } catch (err) {
@@ -29,15 +43,14 @@ function SavedRecipesPage({ token }) {
         setLoading(false);
       }
     };
-
-    loadRecipes();
+    load();
   }, [token]);
 
   if (!token) {
     return (
       <div className="page-card">
         <h1>Saved Recipes</h1>
-        <p>Please log in first to view your saved recipes.</p>
+        <p className="section-copy">Please log in to view your saved recipes.</p>
       </div>
     );
   }
@@ -45,41 +58,68 @@ function SavedRecipesPage({ token }) {
   return (
     <div className="page-card">
       <h1>Saved Recipes</h1>
-      <p className="section-copy">Browse the recipes you saved while testing and using the app.</p>
+      <p className="section-copy">Recipes you saved while using the app.</p>
 
-      {loading && <p>Loading saved recipes...</p>}
+      {loading && <p className="section-copy">Loading...</p>}
       {error && <p className="message error">{error}</p>}
-      {!loading && !error && recipes.length === 0 && <p className="empty-state">No saved recipes yet.</p>}
+      {!loading && !error && recipes.length === 0 && (
+        <p className="empty-state">No saved recipes yet.</p>
+      )}
 
       {recipes.map((recipe) => (
         <div key={recipe.id} className="recipe-card">
-          <h2>{recipe.title}</h2>
+          <div className="history-header">
+            <h2>{recipe.title}</h2>
+            {recipe.saved_at && (
+              <span className="history-badge saved">
+                Saved {new Date(recipe.saved_at).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+
           {recipe.image_url && (
             <img
               src={buildApiUrl(recipe.image_url)}
-              alt={`Saved thumbnail for ${recipe.title}`}
+              alt={`Thumbnail for ${recipe.title}`}
               className="recipe-image-preview"
             />
           )}
-          <p><strong>Generated:</strong> {new Date(recipe.created_at).toLocaleString()}</p>
-          {recipe.saved_at && <p><strong>Saved:</strong> {new Date(recipe.saved_at).toLocaleString()}</p>}
-          <p><strong>Ingredients:</strong> {recipe.ingredients.join(", ")}</p>
-          <p><strong>Preferences:</strong> {recipe.preferences.join(", ") || "None"}</p>
-          <p><strong>Allergies:</strong> {recipe.allergies.join(", ") || "None"}</p>
 
-          <div className="result-block">
-            <h3 className="section-title">Steps</h3>
-            <ul className="result-list">
-            {recipe.steps.map((step, index) => (
-              <li key={`${recipe.id}-${index}`}>{step}</li>
+          <div className="tag-row">
+            {recipe.ingredients.map((item) => (
+              <span key={item} className="tag">{item}</span>
             ))}
-            </ul>
           </div>
 
-          <p><strong>Calories:</strong> {recipe.nutrition.calories}</p>
-          <p><strong>Protein:</strong> {recipe.nutrition.protein}</p>
-          <p><strong>Carbs:</strong> {recipe.nutrition.carbs}</p>
-          <p><strong>Fat:</strong> {recipe.nutrition.fat}</p>
+          {recipe.preferences?.length > 0 && (
+            <div className="tag-row" style={{ marginTop: "0.35rem" }}>
+              {recipe.preferences.map((item) => (
+                <span key={item} className="tag">{item}</span>
+              ))}
+            </div>
+          )}
+
+          {recipe.allergies?.length > 0 && (
+            <div className="tag-row" style={{ marginTop: "0.35rem" }}>
+              {recipe.allergies.map((item) => (
+                <span key={item} className="tag allergy">{item}</span>
+              ))}
+            </div>
+          )}
+
+          <div className="result-block">
+            <p className="section-title">Preparation Steps</p>
+            <ol className="result-list">
+              {recipe.steps.map((step, index) => (
+                <li key={`${recipe.id}-${index}`}>{step}</li>
+              ))}
+            </ol>
+          </div>
+
+          <div className="result-block">
+            <p className="section-title">Nutrition Estimate</p>
+            <NutritionGrid nutrition={recipe.nutrition} />
+          </div>
         </div>
       ))}
     </div>

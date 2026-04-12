@@ -1,44 +1,21 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../lib/api";
 
-function LoginPage({ token, profile, setProfile, onAuthSuccess }) {
+function LoginPage() {
+  const { token, profile, login, updateProfile } = useAuth();
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [preferences, setPreferences] = useState("");
-  const [allergies, setAllergies] = useState("");
-
-  useEffect(() => {
-    if (!token) {
-      setProfile(null);
-      return;
-    }
-
-    if (profile) {
-      return;
-    }
-
-    const loadProfile = async () => {
-      try {
-        const data = await apiFetch("/me", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setProfile(data);
-        setPreferences(data.preferences.join(", "));
-        setAllergies(data.allergies.join(", "));
-      } catch {
-        localStorage.removeItem("token");
-        onAuthSuccess(null);
-      }
-    };
-
-    loadProfile();
-  }, [token, profile, setProfile, onAuthSuccess]);
+  const [preferences, setPreferences] = useState(
+    () => profile?.preferences.join(", ") ?? ""
+  );
+  const [allergies, setAllergies] = useState(
+    () => profile?.allergies.join(", ") ?? ""
+  );
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -61,7 +38,7 @@ function LoginPage({ token, profile, setProfile, onAuthSuccess }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
         });
-        onAuthSuccess(data.access_token);
+        login(data.access_token);
         setMessage("Login successful.");
       }
     } catch (err) {
@@ -71,11 +48,9 @@ function LoginPage({ token, profile, setProfile, onAuthSuccess }) {
     }
   };
 
-  const updateProfile = async (event) => {
+  const handleProfileUpdate = async (event) => {
     event.preventDefault();
-    if (!token) {
-      return;
-    }
+    if (!token) return;
 
     setLoading(true);
     setMessage("");
@@ -93,8 +68,8 @@ function LoginPage({ token, profile, setProfile, onAuthSuccess }) {
           allergies: allergies.split(",").map((item) => item.trim()).filter(Boolean),
         }),
       });
-      setProfile(data);
-      setMessage("Profile updated.");
+      updateProfile(data);
+      setMessage("Profile updated successfully.");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -106,82 +81,119 @@ function LoginPage({ token, profile, setProfile, onAuthSuccess }) {
     <div className="page-card">
       <h1>{token ? "Account" : "Login"}</h1>
       <p className="section-copy">
-        {token ? "You are logged in and can save generated recipes." : "Create an account or log in to save recipes."}
+        {token
+          ? "You are logged in and can save generated recipes."
+          : "Create an account or log in to save recipes and track your history."}
       </p>
 
       {!token && (
         <>
           <div className="button-row">
-            <button type="button" onClick={() => setMode("login")} disabled={mode === "login"}>
+            <button
+              type="button"
+              onClick={() => { setMode("login"); setMessage(""); setError(""); }}
+              disabled={mode === "login"}
+              className={mode !== "login" ? "secondary" : ""}
+            >
               Login
             </button>
-            <button type="button" onClick={() => setMode("signup")} disabled={mode === "signup"}>
+            <button
+              type="button"
+              onClick={() => { setMode("signup"); setMessage(""); setError(""); }}
+              disabled={mode === "signup"}
+              className={mode !== "signup" ? "secondary" : ""}
+            >
               Sign Up
             </button>
           </div>
 
           <form onSubmit={handleSubmit} className="form-stack">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
+            <div className="field-group">
+              <label htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+              />
+            </div>
 
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-            />
+            <div className="field-group">
+              <label htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+            </div>
 
             <button type="submit" disabled={loading}>
-              {loading ? "Please wait..." : mode === "signup" ? "Create Account" : "Login"}
+              {loading
+                ? "Please wait..."
+                : mode === "signup"
+                ? "Create Account"
+                : "Login"}
             </button>
           </form>
         </>
       )}
 
-      {message && <p className="message">{message}</p>}
+      {message && <p className="message success">{message}</p>}
       {error && <p className="message error">{error}</p>}
 
-      {token && (
-        <form onSubmit={updateProfile} className="form-stack">
-          <h2>Saved Preferences</h2>
+      {token && profile && (
+        <>
+          <hr className="card-divider" />
+          <h2>Saved Profile</h2>
+          <p className="section-copy">
+            These defaults are applied automatically when preference or allergy fields
+            are left empty on the Generate Recipe page.
+          </p>
 
-          <label htmlFor="saved-preferences">Dietary Preferences</label>
-          <input
-            id="saved-preferences"
-            type="text"
-            value={preferences}
-            onChange={(event) => setPreferences(event.target.value)}
-            placeholder="e.g. halal, vegetarian"
-          />
+          <div className="tag-row" style={{ marginBottom: "1rem" }}>
+            {profile.preferences.length > 0
+              ? profile.preferences.map((item) => (
+                  <span key={item} className="tag">{item}</span>
+                ))
+              : <span className="empty-state">No preferences saved</span>}
+            {profile.allergies.map((item) => (
+              <span key={item} className="tag allergy">{item}</span>
+            ))}
+          </div>
 
-          <label htmlFor="saved-allergies">Allergies</label>
-          <input
-            id="saved-allergies"
-            type="text"
-            value={allergies}
-            onChange={(event) => setAllergies(event.target.value)}
-            placeholder="e.g. peanut, milk"
-          />
+          <form onSubmit={handleProfileUpdate} className="form-stack">
+            <div className="field-group">
+              <label htmlFor="saved-preferences">Dietary Preferences</label>
+              <input
+                id="saved-preferences"
+                type="text"
+                value={preferences}
+                onChange={(e) => setPreferences(e.target.value)}
+                placeholder="e.g. halal, vegetarian"
+              />
+            </div>
 
-          <button type="submit" disabled={loading}>
-            {loading ? "Saving..." : "Save Profile"}
-          </button>
+            <div className="field-group">
+              <label htmlFor="saved-allergies">Allergies</label>
+              <input
+                id="saved-allergies"
+                type="text"
+                value={allergies}
+                onChange={(e) => setAllergies(e.target.value)}
+                placeholder="e.g. peanut, milk"
+              />
+            </div>
 
-          {profile && (
-            <p className="section-copy">
-              Stored preferences: {profile.preferences.join(", ") || "None"} | Stored allergies:{" "}
-              {profile.allergies.join(", ") || "None"}
-            </p>
-          )}
-        </form>
+            <button type="submit" disabled={loading}>
+              {loading ? "Saving..." : "Update Profile"}
+            </button>
+          </form>
+        </>
       )}
     </div>
   );

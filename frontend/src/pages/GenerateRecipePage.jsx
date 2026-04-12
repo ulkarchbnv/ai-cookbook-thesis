@@ -1,7 +1,29 @@
 import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import { apiFetch, buildApiUrl } from "../lib/api";
 
-function GenerateRecipePage({ token, profile }) {
+function NutritionGrid({ nutrition }) {
+  const fields = [
+    { label: "Calories", value: nutrition.calories },
+    { label: "Protein", value: nutrition.protein },
+    { label: "Carbs", value: nutrition.carbs },
+    { label: "Fat", value: nutrition.fat },
+  ];
+
+  return (
+    <div className="nutrition-grid">
+      {fields.map(({ label, value }) => (
+        <div key={label} className="nutrition-cell">
+          <div className="cell-label">{label}</div>
+          <div className="cell-value">{value}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function GenerateRecipePage() {
+  const { token, profile } = useAuth();
   const [ingredients, setIngredients] = useState("");
   const [preferences, setPreferences] = useState("");
   const [allergies, setAllergies] = useState("");
@@ -10,18 +32,20 @@ function GenerateRecipePage({ token, profile }) {
   const [error, setError] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
   const [saveLoading, setSaveLoading] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
 
   const generateRecipe = async () => {
     setLoading(true);
     setError("");
     setRecipe(null);
     setSaveMessage("");
+    setIsSaved(false);
 
-    const manualPreferences = preferences.split(",").map((i) => i.trim()).filter((i) => i !== "");
-    const manualAllergies = allergies.split(",").map((i) => i.trim()).filter((i) => i !== "");
+    const manualPreferences = preferences.split(",").map((i) => i.trim()).filter(Boolean);
+    const manualAllergies = allergies.split(",").map((i) => i.trim()).filter(Boolean);
 
     const payload = {
-      ingredients: ingredients.split(",").map((i) => i.trim()).filter((i) => i !== ""),
+      ingredients: ingredients.split(",").map((i) => i.trim()).filter(Boolean),
       preferences: manualPreferences.length > 0 ? manualPreferences : profile?.preferences || [],
       allergies: manualAllergies.length > 0 ? manualAllergies : profile?.allergies || [],
     };
@@ -44,9 +68,7 @@ function GenerateRecipePage({ token, profile }) {
   };
 
   const saveRecipe = async () => {
-    if (!recipe || !token) {
-      return;
-    }
+    if (!recipe || !token) return;
 
     setSaveLoading(true);
     setSaveMessage("");
@@ -58,11 +80,9 @@ function GenerateRecipePage({ token, profile }) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          generated_recipe_id: recipe.generated_recipe_id,
-        }),
+        body: JSON.stringify({ generated_recipe_id: recipe.generated_recipe_id }),
       });
-
+      setIsSaved(true);
       setSaveMessage("Recipe saved successfully.");
     } catch (err) {
       setSaveMessage(err.message);
@@ -76,13 +96,8 @@ function GenerateRecipePage({ token, profile }) {
       <h1>Generate Recipe</h1>
       <p className="section-copy">
         Enter ingredients and optional dietary constraints to generate a structured recipe.
+        {profile && " Your saved profile defaults apply when fields are left empty."}
       </p>
-
-      {profile && (
-        <p className="section-copy">
-          Saved profile defaults will be used when the preference or allergy fields are left empty.
-        </p>
-      )}
 
       <div className="field-grid">
         <div className="field-group">
@@ -95,9 +110,8 @@ function GenerateRecipePage({ token, profile }) {
             placeholder="e.g. chicken, rice, tomato"
           />
         </div>
-
         <div className="field-group">
-          <label htmlFor="preferences">Preferences</label>
+          <label htmlFor="preferences">Dietary Preferences</label>
           <input
             id="preferences"
             type="text"
@@ -106,7 +120,6 @@ function GenerateRecipePage({ token, profile }) {
             placeholder="e.g. halal, vegetarian"
           />
         </div>
-
         <div className="field-group">
           <label htmlFor="allergies">Allergies</label>
           <input
@@ -120,57 +133,89 @@ function GenerateRecipePage({ token, profile }) {
       </div>
 
       <div className="button-row">
-        <button type="button" onClick={generateRecipe}>Generate Recipe</button>
+        <button type="button" onClick={generateRecipe} disabled={loading}>
+          {loading ? "Generating..." : "Generate Recipe"}
+        </button>
       </div>
-      {loading && <p>Generating recipe...</p>}
+
       {error && <p className="message error">{error}</p>}
 
       {recipe && (
         <div className="recipe-card">
-          <h2>{recipe.title}</h2>
           {recipe.image_url && (
             <img
               src={buildApiUrl(recipe.image_url)}
-              alt={`Generated thumbnail for ${recipe.title}`}
+              alt={`Thumbnail for ${recipe.title}`}
               className="recipe-image-preview"
             />
           )}
-          {recipe.warnings?.map((warning, index) => (
-            <p key={index} className="message">
-              {warning}
-            </p>
-          ))}
-          <p><strong>Ingredients:</strong> {recipe.ingredients.join(", ")}</p>
-          <p><strong>Preferences:</strong> {recipe.preferences.join(", ") || "None"}</p>
-          <p><strong>Allergies:</strong> {recipe.allergies.join(", ") || "None"}</p>
+
+          <h2>{recipe.title}</h2>
+
+          {recipe.warnings?.length > 0 && (
+            <div style={{ marginBottom: "0.75rem" }}>
+              {recipe.warnings.map((warning, index) => (
+                <p key={index} className="message error">{warning}</p>
+              ))}
+            </div>
+          )}
+
+          <hr className="card-divider" />
+
+          <p className="section-title">Ingredients</p>
+          <div className="tag-row">
+            {recipe.ingredients.map((item) => (
+              <span key={item} className="tag">{item}</span>
+            ))}
+          </div>
+
+          {recipe.preferences?.length > 0 && (
+            <div className="tag-row" style={{ marginTop: "0.35rem" }}>
+              {recipe.preferences.map((item) => (
+                <span key={item} className="tag">{item}</span>
+              ))}
+            </div>
+          )}
+
+          {recipe.allergies?.length > 0 && (
+            <div className="tag-row" style={{ marginTop: "0.35rem" }}>
+              {recipe.allergies.map((item) => (
+                <span key={item} className="tag allergy">{item}</span>
+              ))}
+            </div>
+          )}
 
           <div className="result-block">
-            <h3 className="section-title">Steps</h3>
-            <ul className="result-list">
+            <p className="section-title">Preparation Steps</p>
+            <ol className="result-list">
               {recipe.steps.map((step, index) => (
                 <li key={index}>{step}</li>
               ))}
-            </ul>
+            </ol>
           </div>
 
-          <p><strong>Calories:</strong> {recipe.nutrition_estimate.calories}</p>
-          <p><strong>Protein:</strong> {recipe.nutrition_estimate.protein}</p>
-          <p><strong>Carbs:</strong> {recipe.nutrition_estimate.carbs}</p>
-          <p><strong>Fat:</strong> {recipe.nutrition_estimate.fat}</p>
+          <div className="result-block">
+            <p className="section-title">Nutrition Estimate</p>
+            <NutritionGrid nutrition={recipe.nutrition_estimate} />
+          </div>
+
+          <hr className="card-divider" />
 
           {token ? (
             <div className="inline-actions">
               <button
                 type="button"
                 onClick={saveRecipe}
-                disabled={saveLoading || !recipe.generated_recipe_id}
+                disabled={saveLoading || isSaved || !recipe.generated_recipe_id}
               >
-                {saveLoading ? "Saving..." : "Save Recipe"}
+                {isSaved ? "Saved ✓" : saveLoading ? "Saving..." : "Save Recipe"}
               </button>
               {!recipe.generated_recipe_id && (
-                <p className="message">Generate while logged in to store this recipe in your history and save it.</p>
+                <p className="message">Log in before generating to enable saving.</p>
               )}
-              {saveMessage && <p className="message">{saveMessage}</p>}
+              {saveMessage && (
+                <p className={`message ${isSaved ? "success" : "error"}`}>{saveMessage}</p>
+              )}
             </div>
           ) : (
             <p className="message">Log in to save this recipe.</p>
