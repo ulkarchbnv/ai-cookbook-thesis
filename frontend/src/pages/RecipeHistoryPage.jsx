@@ -1,25 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch, buildApiUrl } from "../lib/api";
-
-function NutritionGrid({ nutrition }) {
-  const fields = [
-    { label: "Calories", value: nutrition.calories },
-    { label: "Protein", value: nutrition.protein },
-    { label: "Carbs", value: nutrition.carbs },
-    { label: "Fat", value: nutrition.fat },
-  ];
-  return (
-    <div className="nutrition-grid">
-      {fields.map(({ label, value }) => (
-        <div key={label} className="nutrition-cell">
-          <div className="cell-label">{label}</div>
-          <div className="cell-value">{value}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
+import NutritionGrid from "../components/NutritionGrid";
 
 function RecipeHistoryPage() {
   const { token } = useAuth();
@@ -90,26 +72,33 @@ function RecipeHistoryPage() {
             {entry.saved_at && ` · Saved ${new Date(entry.saved_at).toLocaleDateString()}`}
           </p>
 
+          <p className="section-title">Ingredients</p>
           <div className="tag-row">
-            {entry.ingredients.map((item) => (
-              <span key={item} className="tag">{item}</span>
+            {entry.ingredients.map((item, index) => (
+              <span key={index} className="tag">{item}</span>
             ))}
           </div>
 
           {entry.preferences?.length > 0 && (
-            <div className="tag-row" style={{ marginTop: "0.35rem" }}>
-              {entry.preferences.map((item) => (
-                <span key={item} className="tag">{item}</span>
-              ))}
-            </div>
+            <>
+              <p className="section-title" style={{ marginTop: "0.75rem" }}>Dietary Preferences</p>
+              <div className="tag-row">
+                {entry.preferences.map((item, index) => (
+                  <span key={index} className="tag">{item}</span>
+                ))}
+              </div>
+            </>
           )}
 
           {entry.allergies?.length > 0 && (
-            <div className="tag-row" style={{ marginTop: "0.35rem" }}>
-              {entry.allergies.map((item) => (
-                <span key={item} className="tag allergy">{item}</span>
-              ))}
-            </div>
+            <>
+              <p className="section-title" style={{ marginTop: "0.75rem" }}>Allergies</p>
+              <div className="tag-row">
+                {entry.allergies.map((item, index) => (
+                  <span key={index} className="tag allergy">{item}</span>
+                ))}
+              </div>
+            </>
           )}
 
           {entry.warnings?.length > 0 && (

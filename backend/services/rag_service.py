@@ -1,6 +1,6 @@
 import json
 from typing import Any
-
+import re
 from backend.config import settings
 from backend.schemas import RecipeRequest
 from backend.services.embedding_service import create_embeddings
@@ -141,7 +141,10 @@ def get_preference_conflict_keywords(preferences: list[str]) -> dict[str, set[st
 
 def _matches_any_keyword(text: str, keywords: set[str]) -> bool:
     normalized_text = _normalize_keyword(text)
-    return any(keyword in normalized_text for keyword in keywords)
+    return any(
+        re.search(rf"\b{re.escape(keyword)}\b", normalized_text)
+        for keyword in keywords
+    )
 
 
 def find_conflicting_ingredients(ingredients: list[str], allergies: list[str]) -> list[str]:

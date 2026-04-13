@@ -6,8 +6,6 @@ from pathlib import Path
 from backend.config import settings
 from backend.database import Base, engine
 from backend.rate_limit import RateLimitMiddleware, RateLimitRule
-from backend.routes import auth, ocr, recipes
-
 from backend.routes import auth, ocr, rag_debug, recipes
 
 
@@ -71,9 +69,6 @@ def read_root():
     }
 
 
-app.include_router(auth.router)
-app.include_router(recipes.router)
-app.include_router(ocr.router)
 app.include_router(auth.router)
 app.include_router(recipes.router)
 app.include_router(ocr.router)

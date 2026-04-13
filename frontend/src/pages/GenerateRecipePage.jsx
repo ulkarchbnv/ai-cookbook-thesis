@@ -1,26 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch, buildApiUrl } from "../lib/api";
-
-function NutritionGrid({ nutrition }) {
-  const fields = [
-    { label: "Calories", value: nutrition.calories },
-    { label: "Protein", value: nutrition.protein },
-    { label: "Carbs", value: nutrition.carbs },
-    { label: "Fat", value: nutrition.fat },
-  ];
-
-  return (
-    <div className="nutrition-grid">
-      {fields.map(({ label, value }) => (
-        <div key={label} className="nutrition-cell">
-          <div className="cell-label">{label}</div>
-          <div className="cell-value">{value}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
+import NutritionGrid from "../components/NutritionGrid";
 
 function GenerateRecipePage() {
   const { token, profile } = useAuth();
@@ -35,6 +16,12 @@ function GenerateRecipePage() {
   const [isSaved, setIsSaved] = useState(false);
 
   const generateRecipe = async () => {
+    const parsedIngredients = ingredients.split(",").map((i) => i.trim()).filter(Boolean);
+    if (parsedIngredients.length === 0) {
+      setError("Please enter at least one ingredient.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     setRecipe(null);
@@ -45,7 +32,7 @@ function GenerateRecipePage() {
     const manualAllergies = allergies.split(",").map((i) => i.trim()).filter(Boolean);
 
     const payload = {
-      ingredients: ingredients.split(",").map((i) => i.trim()).filter(Boolean),
+      ingredients: parsedIngredients,
       preferences: manualPreferences.length > 0 ? manualPreferences : profile?.preferences || [],
       allergies: manualAllergies.length > 0 ? manualAllergies : profile?.allergies || [],
     };
@@ -164,25 +151,31 @@ function GenerateRecipePage() {
 
           <p className="section-title">Ingredients</p>
           <div className="tag-row">
-            {recipe.ingredients.map((item) => (
-              <span key={item} className="tag">{item}</span>
+            {recipe.ingredients.map((item, index) => (
+              <span key={index} className="tag">{item}</span>
             ))}
           </div>
 
           {recipe.preferences?.length > 0 && (
-            <div className="tag-row" style={{ marginTop: "0.35rem" }}>
-              {recipe.preferences.map((item) => (
-                <span key={item} className="tag">{item}</span>
-              ))}
-            </div>
+            <>
+              <p className="section-title" style={{ marginTop: "0.75rem" }}>Dietary Preferences</p>
+              <div className="tag-row">
+                {recipe.preferences.map((item, index) => (
+                  <span key={index} className="tag">{item}</span>
+                ))}
+              </div>
+            </>
           )}
 
           {recipe.allergies?.length > 0 && (
-            <div className="tag-row" style={{ marginTop: "0.35rem" }}>
-              {recipe.allergies.map((item) => (
-                <span key={item} className="tag allergy">{item}</span>
-              ))}
-            </div>
+            <>
+              <p className="section-title" style={{ marginTop: "0.75rem" }}>Allergies</p>
+              <div className="tag-row">
+                {recipe.allergies.map((item, index) => (
+                  <span key={index} className="tag allergy">{item}</span>
+                ))}
+              </div>
+            </>
           )}
 
           <div className="result-block">

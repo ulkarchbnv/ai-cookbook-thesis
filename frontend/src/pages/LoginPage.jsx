@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../lib/api";
 
@@ -16,6 +16,14 @@ function LoginPage() {
   const [allergies, setAllergies] = useState(
     () => profile?.allergies.join(", ") ?? ""
   );
+
+  
+  useEffect(() => {
+    if (profile) {
+      setPreferences(profile.preferences.join(", "));
+      setAllergies(profile.allergies.join(", "));
+    }
+  }, [profile]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -157,12 +165,12 @@ function LoginPage() {
 
           <div className="tag-row" style={{ marginBottom: "1rem" }}>
             {profile.preferences.length > 0
-              ? profile.preferences.map((item) => (
-                  <span key={item} className="tag">{item}</span>
+              ? profile.preferences.map((item, index) => (
+                  <span key={index} className="tag">{item}</span>
                 ))
               : <span className="empty-state">No preferences saved</span>}
-            {profile.allergies.map((item) => (
-              <span key={item} className="tag allergy">{item}</span>
+            {profile.allergies.map((item, index) => (
+              <span key={index} className="tag allergy">{item}</span>
             ))}
           </div>
 

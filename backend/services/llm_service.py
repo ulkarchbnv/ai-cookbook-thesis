@@ -73,11 +73,17 @@ def _find_output_restriction_violations(
 ) -> list[str]:
     text_blocks = [recipe_json.get("title", "")]
     text_blocks.extend(recipe_json.get("ingredients", []))
-    searchable_text = " || ".join(item.strip().lower() for item in text_blocks if isinstance(item, str))
+    normalized_blocks = [item.strip().lower() for item in text_blocks if isinstance(item, str)]
 
     violations: list[str] = []
     for restriction_name, keywords in restrictions.items():
-        matched_keywords = sorted(keyword for keyword in keywords if keyword in searchable_text)
+        matched_keywords = sorted(
+            keyword for keyword in keywords
+            if any(
+                re.search(rf"\b{re.escape(keyword)}\b", block)
+                for block in normalized_blocks
+            )
+        )
         if matched_keywords:
             violations.append(f"{restriction_name}: {', '.join(matched_keywords[:5])}")
 

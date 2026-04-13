@@ -1,29 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../lib/api";
-
-function NutritionGrid({ nutrition }) {
-  const fields = [
-    { label: "Calories", value: nutrition.calories },
-    { label: "Protein (g)", value: nutrition.protein_g },
-    { label: "Carbs (g)", value: nutrition.carbs_g },
-    { label: "Fat (g)", value: nutrition.fat_g },
-    { label: "Sugar (g)", value: nutrition.sugar_g },
-    { label: "Sodium (mg)", value: nutrition.sodium_mg },
-    { label: "Fiber (g)", value: nutrition.fiber_g },
-  ];
-
-  return (
-    <div className="nutrition-grid">
-      {fields.map(({ label, value }) => (
-        <div key={label} className="nutrition-cell">
-          <div className="cell-label">{label}</div>
-          <div className="cell-value">{value ?? "—"}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
+import NutritionGrid from "../components/NutritionGrid";
 
 function NutritionPage() {
   const { token } = useAuth();
@@ -38,6 +16,16 @@ function NutritionPage() {
   const [isSaved, setIsSaved] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
+
+  const ocrNutritionFields = (nutrition) => [
+    { label: "Calories", value: nutrition.calories },
+    { label: "Protein (g)", value: nutrition.protein_g },
+    { label: "Carbs (g)", value: nutrition.carbs_g },
+    { label: "Fat (g)", value: nutrition.fat_g },
+    { label: "Sugar (g)", value: nutrition.sugar_g },
+    { label: "Sodium (mg)", value: nutrition.sodium_mg },
+    { label: "Fiber (g)", value: nutrition.fiber_g },
+  ];
 
   useEffect(() => {
     if (!token) {
@@ -187,7 +175,10 @@ function NutritionPage() {
             </p>
           )}
 
-          <NutritionGrid nutrition={result.structured_nutrition} />
+          <NutritionGrid
+            nutrition={result.structured_nutrition}
+            fields={ocrNutritionFields(result.structured_nutrition)}
+          />
 
           <div className="result-block">
             <p className="section-title">Raw OCR Text</p>
@@ -247,7 +238,10 @@ function NutritionPage() {
                 </p>
               )}
 
-              <NutritionGrid nutrition={entry.structured_nutrition} />
+              <NutritionGrid
+                nutrition={entry.structured_nutrition}
+                fields={ocrNutritionFields(entry.structured_nutrition)}
+              />
             </div>
           ))}
         </div>
