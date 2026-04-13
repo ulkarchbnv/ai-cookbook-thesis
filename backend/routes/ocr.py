@@ -36,10 +36,10 @@ def get_ocr_status():
 
 
 @router.post("/extract", response_model=OcrExtractionResponse)
-async def extract_nutrition(
+def extract_nutrition(
     file: UploadFile = File(...),
 ):
-    return await extract_nutrition_label(file)
+    return extract_nutrition_label(file)
 
 
 @router.post("/save", response_model=SavedOcrExtractionResponse, status_code=status.HTTP_201_CREATED)

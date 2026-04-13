@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
 from backend.config import settings
-from backend.database import Base, engine
+from backend.database import engine
 from backend.rate_limit import RateLimitMiddleware, RateLimitRule
 from backend.routes import auth, ocr, rag_debug, recipes
 
@@ -54,9 +54,6 @@ app.add_middleware(
 )
 
 
-@app.on_event("startup")
-def on_startup() -> None:
-    Base.metadata.create_all(bind=engine)
 
 
 app.mount("/media", StaticFiles(directory="backend/media"), name="media")

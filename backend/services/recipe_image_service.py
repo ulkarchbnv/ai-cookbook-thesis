@@ -44,14 +44,10 @@ def build_recipe_image_cache_key(
     preferences: list[str],
     allergies: list[str],
 ) -> str:
-    normalized_ingredients = sorted(_normalize_text(item) for item in ingredients if item.strip())
-    visual_preferences = _get_visual_impact_preferences(preferences)
-    digest_source = "||".join(
-        [
-            ",".join(normalized_ingredients),
-            ",".join(visual_preferences),
-        ]
+    normalized_ingredients = sorted(
+        _normalize_text(item) for item in ingredients if item.strip()
     )
+    digest_source = ",".join(normalized_ingredients)
     return hashlib.sha256(digest_source.encode("utf-8")).hexdigest()[:24]
 
 

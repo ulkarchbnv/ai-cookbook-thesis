@@ -72,7 +72,7 @@ OCR text:
         ) from exc
 
 
-async def extract_nutrition_label(file: UploadFile) -> OcrExtractionResponse:
+def extract_nutrition_label(file: UploadFile) -> OcrExtractionResponse:
     if settings.ocr_provider != "google_vision":
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -80,7 +80,7 @@ async def extract_nutrition_label(file: UploadFile) -> OcrExtractionResponse:
         )
 
     validate_image_file(file)
-    file_bytes = await file.read()
+    file_bytes = file.file.read()
 
     if not file_bytes:
         raise HTTPException(
