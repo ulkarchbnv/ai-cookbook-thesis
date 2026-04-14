@@ -1,5 +1,8 @@
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from datetime import datetime
+from typing import Generic, TypeVar
+
+T = TypeVar("T")
 
 
 class UserCreate(BaseModel):
@@ -132,12 +135,16 @@ class NutritionLabelData(BaseModel):
 class OcrExtractionResponse(BaseModel):
     raw_text: str
     structured_nutrition: NutritionLabelData
+    image_url: str | None = None
+    image_path: str | None = None
 
 
 class SavedOcrExtractionCreate(BaseModel):
     source_filename: str
     raw_text: str
     structured_nutrition: NutritionLabelData
+    image_url: str | None = None
+    image_path: str | None = None
 
 
 class SavedOcrExtractionResponse(BaseModel):
@@ -147,4 +154,13 @@ class SavedOcrExtractionResponse(BaseModel):
     source_filename: str
     raw_text: str
     structured_nutrition: NutritionLabelData
+    image_url: str | None = None
     created_at: datetime
+
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    items: list[T]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int

@@ -1,4 +1,6 @@
+import hashlib
 import json
+from pathlib import Path
 
 from fastapi import HTTPException, UploadFile, status
 from openai import OpenAI
@@ -11,6 +13,27 @@ from backend.services.ocr_image_processing import (
     validate_image_file,
     validate_image_size,
 )
+
+_ALLOWED_OCR_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp"}
+
+
+def _save_ocr_upload(file_bytes: bytes, original_filename: str) -> dict[str, str]:
+    content_hash = hashlib.sha256(file_bytes).hexdigest()[:24]
+    raw_ext = Path(original_filename).suffix.lower()
+    ext = raw_ext if raw_ext in _ALLOWED_OCR_EXTENSIONS else ".jpg"
+    stored_filename = f"{content_hash}{ext}"
+
+    upload_dir = Path(settings.ocr_upload_directory)
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    file_path = upload_dir / stored_filename
+    if not file_path.exists():
+        file_path.write_bytes(file_bytes)
+
+    return {
+        "image_path": str(file_path.as_posix()),
+        "image_url": f"/media/ocr_uploads/{stored_filename}",
+    }
 
 def _strip_nutrition_fences(raw_text: str) -> str:
     cleaned = raw_text.strip()
@@ -89,6 +112,13 @@ def extract_nutrition_label(file: UploadFile) -> OcrExtractionResponse:
         )
 
     validate_image_size(file_bytes)
+
+    image_fields: dict[str, str | None] = {"image_path": None, "image_url": None}
+    try:
+        image_fields = _save_ocr_upload(file_bytes, file.filename or "upload.jpg")
+    except Exception:
+        pass
+
     prepared_image = prepare_image_for_ocr(file_bytes)
     raw_text = extract_text_with_google_vision(prepared_image)
     structured_nutrition = _structure_nutrition_text(raw_text)
@@ -96,4 +126,6 @@ def extract_nutrition_label(file: UploadFile) -> OcrExtractionResponse:
     return OcrExtractionResponse(
         raw_text=raw_text,
         structured_nutrition=structured_nutrition,
+        image_url=image_fields["image_url"],
+        image_path=image_fields["image_path"],
     )

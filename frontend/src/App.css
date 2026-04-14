@@ -350,3 +350,46 @@
   color: #9a3412;
   border-color: #fed7aa;
 }
+
+
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eaf0f7;
+}
+
+.page-btn {
+  height: 34px;
+  padding: 0 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: #f0f5fa;
+  color: #0f4c81;
+  border: 1.5px solid #c8d5e3;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #0f4c81;
+  color: #ffffff;
+  border-color: #0f4c81;
+}
+
+.page-btn:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.page-info {
+  font-size: 0.875rem;
+  color: #5b6f85;
+  font-weight: 500;
+  min-width: 7rem;
+  text-align: center;
+}

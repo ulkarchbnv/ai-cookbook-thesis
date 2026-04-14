@@ -58,6 +58,8 @@ class OcrExtraction(Base):
     source_filename = Column(String, nullable=False)
     raw_text = Column(Text, nullable=False)
     structured_nutrition = Column(Text, nullable=False)
+    image_path = Column(String, nullable=True)
+    image_url = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 

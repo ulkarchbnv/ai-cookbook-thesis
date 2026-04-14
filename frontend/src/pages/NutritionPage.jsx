@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { apiFetch } from "../lib/api";
+import { apiFetch, buildApiUrl } from "../lib/api";
 import NutritionGrid from "../components/NutritionGrid";
+
+const PAGE_SIZE = 10;
 
 function NutritionPage() {
   const { token } = useAuth();
@@ -9,6 +11,9 @@ function NutritionPage() {
   const [imagePreviewUrl, setImagePreviewUrl] = useState("");
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
+  const [historyTotal, setHistoryTotal] = useState(0);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyTotalPages, setHistoryTotalPages] = useState(1);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
@@ -27,29 +32,34 @@ function NutritionPage() {
     { label: "Fiber (g)", value: nutrition.fiber_g },
   ];
 
+  const loadHistory = async (page = 1) => {
+    if (!token) return;
+    setHistoryLoading(true);
+    setHistoryError("");
+    try {
+      const data = await apiFetch(`/ocr/history?page=${page}&page_size=${PAGE_SIZE}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setHistory(data.items);
+      setHistoryTotal(data.total);
+      setHistoryPage(data.page);
+      setHistoryTotalPages(data.total_pages);
+    } catch (err) {
+      setHistoryError(err.message);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!token) {
       setHistory([]);
       setHistoryError("");
+      setHistoryTotal(0);
+      setHistoryPage(1);
       return;
     }
-
-    const loadHistory = async () => {
-      setHistoryLoading(true);
-      setHistoryError("");
-      try {
-        const data = await apiFetch("/ocr/history", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setHistory(data);
-      } catch (err) {
-        setHistoryError(err.message);
-      } finally {
-        setHistoryLoading(false);
-      }
-    };
-
-    loadHistory();
+    loadHistory(1);
   }, [token]);
 
   useEffect(() => {
@@ -98,7 +108,7 @@ function NutritionPage() {
     setSaveMessage("");
 
     try {
-      const saved = await apiFetch("/ocr/save", {
+      await apiFetch("/ocr/save", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -108,11 +118,13 @@ function NutritionPage() {
           source_filename: selectedFile.name,
           raw_text: result.raw_text,
           structured_nutrition: result.structured_nutrition,
+          image_url: result.image_url ?? null,
+          image_path: result.image_path ?? null,
         }),
       });
-      setHistory((prev) => [saved, ...prev]);
       setIsSaved(true);
-      setSaveMessage("Extraction saved to your history.");
+      setSaveMessage("Extraction saved to your food labels.");
+      loadHistory(1);
     } catch (err) {
       setSaveMessage(err.message);
     } finally {
@@ -126,8 +138,8 @@ function NutritionPage() {
       <p className="section-copy">
         Upload a nutrition label image to extract and structure its data using OCR and an LLM.
         {token
-          ? " Extracted results can be saved to your history."
-          : " Log in to save extracted labels to your history."}
+          ? " Extracted results can be saved to your food labels."
+          : " Log in to save extracted labels."}
       </p>
 
       <form onSubmit={handleSubmit} className="form-stack">
@@ -210,12 +222,19 @@ function NutritionPage() {
 
       {token && (
         <div className="recipe-card" style={{ marginTop: "1rem" }}>
-          <h2>OCR History</h2>
+          <div className="history-header">
+            <h2>Saved Food Labels</h2>
+            {historyTotal > 0 && (
+              <span className="history-badge">
+                {historyTotal} {historyTotal === 1 ? "label" : "labels"}
+              </span>
+            )}
+          </div>
 
           {historyLoading && <p className="section-copy">Loading...</p>}
           {historyError && <p className="message error">{historyError}</p>}
           {!historyLoading && !historyError && history.length === 0 && (
-            <p className="empty-state">No saved extractions yet.</p>
+            <p className="empty-state">No saved food labels yet.</p>
           )}
 
           {history.map((entry) => (
@@ -226,6 +245,15 @@ function NutritionPage() {
                   {new Date(entry.created_at).toLocaleDateString()}
                 </span>
               </div>
+
+              {entry.image_url && (
+                <img
+                  src={buildApiUrl(entry.image_url)}
+                  alt={`Label image: ${entry.source_filename}`}
+                  className="ocr-image-preview"
+                  style={{ maxHeight: "200px" }}
+                />
+              )}
 
               {entry.structured_nutrition.product_name && (
                 <p style={{ margin: "0 0 0.5rem", fontSize: "0.9rem" }}>
@@ -244,6 +272,30 @@ function NutritionPage() {
               />
             </div>
           ))}
+
+          {historyTotalPages > 1 && (
+            <div className="pagination-bar">
+              <button
+                type="button"
+                className="page-btn"
+                disabled={historyPage <= 1 || historyLoading}
+                onClick={() => loadHistory(historyPage - 1)}
+              >
+                ‹ Prev
+              </button>
+              <span className="page-info">
+                Page {historyPage} of {historyTotalPages}
+              </span>
+              <button
+                type="button"
+                className="page-btn"
+                disabled={historyPage >= historyTotalPages || historyLoading}
+                onClick={() => loadHistory(historyPage + 1)}
+              >
+                Next ›
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

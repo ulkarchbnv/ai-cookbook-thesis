@@ -3,29 +3,39 @@ import { useAuth } from "../context/AuthContext";
 import { apiFetch, buildApiUrl } from "../lib/api";
 import NutritionGrid from "../components/NutritionGrid";
 
+const PAGE_SIZE = 10;
+
 function RecipeHistoryPage() {
   const { token } = useAuth();
   const [historyEntries, setHistoryEntries] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const loadHistory = async (targetPage = 1) => {
+    if (!token) return;
+    setLoading(true);
+    setError("");
+    try {
+      const data = await apiFetch(`/recipes/history?page=${targetPage}&page_size=${PAGE_SIZE}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setHistoryEntries(data.items);
+      setTotal(data.total);
+      setPage(data.page);
+      setTotalPages(data.total_pages);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (!token) { setHistoryEntries([]); return; }
-    const load = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const data = await apiFetch("/recipes/history", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setHistoryEntries(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+    if (!token) { setHistoryEntries([]); setTotal(0); return; }
+    loadHistory(1);
   }, [token]);
 
   if (!token) {
@@ -39,7 +49,14 @@ function RecipeHistoryPage() {
 
   return (
     <div className="page-card">
-      <h1>Recipe History</h1>
+      <div className="history-header">
+        <h1>Recipe History</h1>
+        {total > 0 && (
+          <span className="history-badge">
+            {total} {total === 1 ? "recipe" : "recipes"}
+          </span>
+        )}
+      </div>
       <p className="section-copy">
         All generated recipes for your account, including those that were not saved.
       </p>
@@ -124,6 +141,30 @@ function RecipeHistoryPage() {
           </div>
         </div>
       ))}
+
+      {totalPages > 1 && (
+        <div className="pagination-bar">
+          <button
+            type="button"
+            className="page-btn"
+            disabled={page <= 1 || loading}
+            onClick={() => loadHistory(page - 1)}
+          >
+            ‹ Prev
+          </button>
+          <span className="page-info">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            type="button"
+            className="page-btn"
+            disabled={page >= totalPages || loading}
+            onClick={() => loadHistory(page + 1)}
+          >
+            Next ›
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,29 +3,39 @@ import { useAuth } from "../context/AuthContext";
 import { apiFetch, buildApiUrl } from "../lib/api";
 import NutritionGrid from "../components/NutritionGrid";
 
+const PAGE_SIZE = 10;
+
 function SavedRecipesPage() {
   const { token } = useAuth();
   const [recipes, setRecipes] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const loadRecipes = async (targetPage = 1) => {
+    if (!token) return;
+    setLoading(true);
+    setError("");
+    try {
+      const data = await apiFetch(`/recipes?page=${targetPage}&page_size=${PAGE_SIZE}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setRecipes(data.items);
+      setTotal(data.total);
+      setPage(data.page);
+      setTotalPages(data.total_pages);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (!token) { setRecipes([]); return; }
-    const load = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const data = await apiFetch("/recipes", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setRecipes(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+    if (!token) { setRecipes([]); setTotal(0); return; }
+    loadRecipes(1);
   }, [token]);
 
   if (!token) {
@@ -39,7 +49,14 @@ function SavedRecipesPage() {
 
   return (
     <div className="page-card">
-      <h1>Saved Recipes</h1>
+      <div className="history-header">
+        <h1>Saved Recipes</h1>
+        {total > 0 && (
+          <span className="history-badge">
+            {total} {total === 1 ? "recipe" : "recipes"}
+          </span>
+        )}
+      </div>
       <p className="section-copy">Recipes you saved while using the app.</p>
 
       {loading && <p className="section-copy">Loading...</p>}
@@ -111,6 +128,30 @@ function SavedRecipesPage() {
           </div>
         </div>
       ))}
+
+      {totalPages > 1 && (
+        <div className="pagination-bar">
+          <button
+            type="button"
+            className="page-btn"
+            disabled={page <= 1 || loading}
+            onClick={() => loadRecipes(page - 1)}
+          >
+            ‹ Prev
+          </button>
+          <span className="page-info">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            type="button"
+            className="page-btn"
+            disabled={page >= totalPages || loading}
+            onClick={() => loadRecipes(page + 1)}
+          >
+            Next ›
+          </button>
+        </div>
+      )}
     </div>
   );
 }

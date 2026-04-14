@@ -35,6 +35,7 @@ class Settings(BaseSettings):
 
     # Media
     recipe_thumbnail_directory: str = "backend/media/recipe_thumbnails"
+    ocr_upload_directory: str = "backend/media/ocr_uploads"
 
     # Upload limits
     max_ocr_upload_bytes: int = 5_242_880

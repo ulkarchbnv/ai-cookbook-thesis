@@ -90,6 +90,39 @@ def _find_output_restriction_violations(
     return violations
 
 
+PANTRY_STAPLES: frozenset[str] = frozenset({
+    "salt", "pepper", "black pepper", "white pepper", "oil", "olive oil",
+    "vegetable oil", "cooking oil", "water", "sugar", "flour", "baking powder",
+    "baking soda", "vinegar", "soy sauce", "cornstarch",
+})
+
+
+def _is_pantry_staple(ingredient: str) -> bool:
+    normalized = " ".join(ingredient.strip().lower().split())
+    return any(staple in normalized for staple in PANTRY_STAPLES)
+
+
+def _find_ingredient_drift(
+    recipe_json: dict,
+    allowed_ingredients: list[str],
+) -> list[str]:
+    """Return generated ingredients that are not in the allowed set and not pantry staples."""
+    allowed_normalized = {" ".join(i.strip().lower().split()) for i in allowed_ingredients}
+    drift: list[str] = []
+    for ingredient in recipe_json.get("ingredients", []):
+        if not isinstance(ingredient, str):
+            continue
+        normalized = " ".join(ingredient.strip().lower().split())
+        if normalized in allowed_normalized:
+            continue
+        if _is_pantry_staple(ingredient):
+            continue
+        if any(allowed.split()[0] in normalized for allowed in allowed_normalized if allowed):
+            continue
+        drift.append(ingredient)
+    return drift
+
+
 def _build_recipe_prompt(
     request: RecipeRequest,
     context_block: str,
@@ -102,15 +135,16 @@ def _build_recipe_prompt(
         restriction_notes.append(f"- Avoid these {label} keyword(s) in the final title and ingredient list: {keyword_list}")
 
     restriction_block = "\n".join(restriction_notes) if restriction_notes else "- No extra keyword restrictions"
+    ingredient_list = ", ".join(request.ingredients)
 
     return f"""
 You are generating a new recipe for an AI cookbook application.
 
-User ingredients: {", ".join(request.ingredients)}.
+User ingredients: {ingredient_list}.
 Dietary preferences: {", ".join(request.preferences) if request.preferences else "none"}.
 Allergies to avoid: {", ".join(request.allergies) if request.allergies else "none"}.
 
-Retrieved recipe context:
+Retrieved recipe context (use only as structural inspiration, do NOT copy ingredients):
 {context_block}
 
 Return only valid JSON with this exact structure:
@@ -128,12 +162,18 @@ Return only valid JSON with this exact structure:
   }}
 }}
 
-Rules:
+STRICT INGREDIENT CONSTRAINT (highest priority):
+- The "ingredients" array MUST contain ONLY ingredients from this list: {ingredient_list}
+- The ONLY permitted additions are essential pantry staples: salt, pepper, oil, water, sugar, flour, baking powder, vinegar, soy sauce, cornstarch
+- You MUST NOT add any other ingredient not in the user's list or the pantry staples above
+- Do not add vegetables, proteins, sauces, spices, or any food item not already listed by the user
+- If the user's ingredients are limited, work with what is available and simplify the recipe accordingly
+
+Additional rules:
 - Do not return markdown
 - Do not return explanation text
 - Respect dietary preferences and allergies
 - Keep the recipe practical for a home cook
-- Use the retrieved recipes only as grounding context
 - Synthesize a new recipe instead of copying a retrieved recipe verbatim
 - If no safe retrieved context is available, still generate a safe recipe from the user input alone
 Additional safety restrictions:
@@ -215,15 +255,24 @@ def generate_structured_recipe(request: RecipeRequest) -> RecipeResponse:
             )
             recipe_json = json.loads(recipe_text)
             last_violations = _find_output_restriction_violations(recipe_json, restrictions)
+            drift_violations = _find_ingredient_drift(recipe_json, safe_ingredients)
 
-            if not last_violations:
+            all_violations = last_violations[:]
+            if drift_violations:
+                all_violations.append(
+                    "ingredient-drift: these ingredients were not provided by the user and are not pantry staples: "
+                    + ", ".join(drift_violations[:8])
+                )
+
+            if not all_violations:
                 recipe_json["warnings"] = warnings
                 return RecipeResponse.model_validate(recipe_json)
 
             violation_note = (
-                "The previous output violated these restrictions and must be corrected: "
-                + "; ".join(last_violations)
-                + ". Regenerate the recipe and avoid those restricted terms."
+                "The previous output violated these rules and must be corrected: "
+                + "; ".join(all_violations)
+                + ". Regenerate the recipe strictly using only the user-provided ingredients "
+                + f"({', '.join(safe_ingredients)}) plus allowed pantry staples, and avoid restricted terms."
             )
             messages.append({"role": "assistant", "content": recipe_text})
             messages.append({"role": "user", "content": violation_note})

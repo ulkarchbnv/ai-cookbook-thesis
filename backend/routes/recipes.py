@@ -1,7 +1,8 @@
 import json
+import math
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
@@ -9,6 +10,7 @@ from backend.dependencies import get_current_user, get_optional_current_user
 from backend.models import GeneratedRecipe, User
 from backend.schemas import (
     GeneratedRecipeHistoryResponse,
+    PaginatedResponse,
     RecipeRequest,
     RecipeResponse,
     SavedRecipeCreate,
@@ -175,34 +177,54 @@ def save_recipe(
     return _generated_recipe_to_saved_response(generated_recipe)
 
 
-@router.get("/recipes", response_model=list[SavedRecipeResponse])
+@router.get("/recipes", response_model=PaginatedResponse[SavedRecipeResponse])
 def list_saved_recipes(
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(10, ge=1, le=50, description="Items per page"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> list[SavedRecipeResponse]:
-    query = (
-        db.query(GeneratedRecipe)
-        .filter(
-            GeneratedRecipe.user_id == current_user.id,
-            GeneratedRecipe.is_saved.is_(True),
-        )
+) -> PaginatedResponse[SavedRecipeResponse]:
+    base_query = db.query(GeneratedRecipe).filter(
+        GeneratedRecipe.user_id == current_user.id,
+        GeneratedRecipe.is_saved.is_(True),
+    )
+    total = base_query.count()
+    rows = (
+        base_query
         .order_by(GeneratedRecipe.saved_at.desc(), GeneratedRecipe.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
         .all()
     )
+    return PaginatedResponse(
+        items=[_generated_recipe_to_saved_response(r) for r in rows],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=max(1, math.ceil(total / page_size)),
+    )
 
-    return [_generated_recipe_to_saved_response(recipe) for recipe in query]
 
-
-@router.get("/recipes/history", response_model=list[GeneratedRecipeHistoryResponse])
+@router.get("/recipes/history", response_model=PaginatedResponse[GeneratedRecipeHistoryResponse])
 def list_generated_recipe_history(
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(10, ge=1, le=50, description="Items per page"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> list[GeneratedRecipeHistoryResponse]:
-    query = (
-        db.query(GeneratedRecipe)
-        .filter(GeneratedRecipe.user_id == current_user.id)
+) -> PaginatedResponse[GeneratedRecipeHistoryResponse]:
+    base_query = db.query(GeneratedRecipe).filter(GeneratedRecipe.user_id == current_user.id)
+    total = base_query.count()
+    rows = (
+        base_query
         .order_by(GeneratedRecipe.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
         .all()
     )
-
-    return [_generated_recipe_to_history_response(recipe) for recipe in query]
+    return PaginatedResponse(
+        items=[_generated_recipe_to_history_response(r) for r in rows],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=max(1, math.ceil(total / page_size)),
+    )
