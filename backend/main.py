@@ -11,6 +11,8 @@ from backend.routes import auth, ocr, rag_debug, recipes
 
 app = FastAPI(title="AI Cookbook API")
 Path("backend/media").mkdir(parents=True, exist_ok=True)
+Path(settings.recipe_thumbnail_directory).mkdir(parents=True, exist_ok=True)
+Path(settings.ocr_upload_directory).mkdir(parents=True, exist_ok=True)
 
 app.add_middleware(
     CORSMiddleware,

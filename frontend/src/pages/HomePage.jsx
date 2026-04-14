@@ -16,17 +16,18 @@ function HomePage() {
           </p>
         </div>
         <div className="meta-card">
-          <strong>Nutrition OCR</strong>
+          <strong>Food Label Scanner</strong>
           <p>
-            Upload a food label image. Google Vision extracts the text and an LLM
-            converts it into structured nutrition fields.
+            Upload a nutrition label image. Google Vision extracts the text and an LLM
+            converts it into structured nutrition fields. Saved labels are stored with
+            their original image for later review.
           </p>
         </div>
         <div className="meta-card">
-          <strong>Saved Recipes</strong>
+          <strong>Saved Recipes &amp; History</strong>
           <p>
-            Logged-in users can save generated recipes and browse their full generation
-            history, including unsaved results.
+            Logged-in users can save generated recipes, browse full generation
+            history, and review past food label extractions — all paginated.
           </p>
         </div>
       </div>
