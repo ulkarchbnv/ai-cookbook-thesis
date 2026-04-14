@@ -42,12 +42,23 @@ def _strip_nutrition_fences(raw_text: str) -> str:
     return cleaned.strip()
 
 
+_MAX_OCR_TEXT_CHARS = 2000
+
+
+def _sanitize_ocr_text(raw_text: str) -> str:
+    """Truncate and strip control characters from OCR output before prompt injection."""
+    sanitized = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", " ", raw_text)
+    return sanitized[:_MAX_OCR_TEXT_CHARS]
+
+
 def _structure_nutrition_text(raw_text: str) -> NutritionLabelData:
     if not settings.openai_api_key:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="OPENAI_API_KEY is not configured.",
         )
+
+    safe_text = _sanitize_ocr_text(raw_text)
 
     prompt = f"""
 You are given OCR text from a food nutrition label.
@@ -73,7 +84,7 @@ Rules:
 - Return only JSON
 
 OCR text:
-{raw_text}
+{safe_text}
 """.strip()
 
     client = OpenAI(api_key=settings.openai_api_key)

@@ -60,6 +60,13 @@ class RecipeRequest(BaseModel):
             cleaned_values.append(cleaned)
         return cleaned_values
 
+    @field_validator("ingredients")
+    @classmethod
+    def validate_ingredients_not_empty_after_cleaning(cls, values: list[str]) -> list[str]:
+        if not values:
+            raise ValueError("At least one non-blank ingredient is required.")
+        return values
+
     @field_validator("preferences", "allergies")
     @classmethod
     def validate_optional_list_size(cls, values: list[str]) -> list[str]:

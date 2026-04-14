@@ -177,6 +177,11 @@ def _find_ingredient_drift(
     return drift
 
 
+def _sanitize_user_string(value: str) -> str:
+    """Strip newlines and control characters that could break prompt structure."""
+    return re.sub(r"[\r\n\t\x00-\x1f\x7f]", " ", value).strip()
+
+
 def _build_recipe_prompt(
     request: RecipeRequest,
     context_block: str,
@@ -189,7 +194,8 @@ def _build_recipe_prompt(
         restriction_notes.append(f"- Avoid these {label} keyword(s) in the final title and ingredient list: {keyword_list}")
 
     restriction_block = "\n".join(restriction_notes) if restriction_notes else "- No extra keyword restrictions"
-    ingredient_list = ", ".join(request.ingredients)
+    safe_ingredients = [_sanitize_user_string(i) for i in request.ingredients]
+    ingredient_list = ", ".join(safe_ingredients)
 
     return f"""
 You are generating a new recipe for an AI cookbook application.
