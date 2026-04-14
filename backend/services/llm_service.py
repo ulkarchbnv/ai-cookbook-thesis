@@ -118,9 +118,24 @@ def _normalize(text: str) -> str:
     return " ".join(text.strip().lower().split())
 
 
+def _stem(word: str) -> str:
+    """Minimal English plural normalization: handles -ies, -es, -s suffixes."""
+    if len(word) > 4 and word.endswith("ies"):
+        return word[:-3] + "y"   # strawberries → strawberry
+    if len(word) > 4 and word.endswith("es"):
+        return word[:-2]          # tomatoes → tomat (close enough for matching)
+    if len(word) > 3 and word.endswith("s"):
+        return word[:-1]          # oats → oat, mushrooms → mushroom
+    return word
+
+
 def _significant_words(text: str) -> set[str]:
     words = set(re.findall(r"[a-z]{2,}", _normalize(text)))
     return words - _NOISE_WORDS
+
+
+def _stemmed_words(text: str) -> set[str]:
+    return {_stem(w) for w in _significant_words(text)}
 
 
 def _is_pantry_staple(ingredient: str) -> bool:
@@ -143,15 +158,32 @@ def _matches_allowed_ingredient(generated: str, allowed_set: set[str], allowed_w
     if not gen_words:
         return True
 
+    # Stem both sides to handle plural/singular mismatches (e.g. oat→oats, strawberry→strawberries)
+    gen_stemmed = _stemmed_words(generated)
+
     for allowed, allowed_words in allowed_words_map.items():
         if not allowed_words:
             continue
+        allowed_stemmed = {_stem(w) for w in allowed_words}
+
+        # Exact word-set match (original or stemmed)
         if allowed_words <= gen_words or gen_words <= allowed_words:
             return True
+        if allowed_stemmed <= gen_stemmed or gen_stemmed <= allowed_stemmed:
+            return True
+
+        # Overlap match (original or stemmed)
         overlap = gen_words & allowed_words
         if overlap and len(overlap) >= max(1, min(len(gen_words), len(allowed_words)) - 1):
             return True
-        if any(aw in gen_normalized_no_qty for aw in allowed_words if len(aw) >= 4):
+        overlap_stemmed = gen_stemmed & allowed_stemmed
+        if overlap_stemmed and len(overlap_stemmed) >= max(1, min(len(gen_stemmed), len(allowed_stemmed)) - 1):
+            return True
+
+        # Substring match on quantity-stripped form (threshold lowered to 2 for short words like "oat")
+        if any(aw in gen_normalized_no_qty for aw in allowed_words if len(aw) >= 2):
+            return True
+        if any(_stem(aw) in gen_normalized_no_qty for aw in allowed_words if len(_stem(aw)) >= 2):
             return True
 
     return False
