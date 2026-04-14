@@ -17,7 +17,6 @@ function LoginPage() {
     () => profile?.allergies.join(", ") ?? ""
   );
 
-  
   useEffect(() => {
     if (profile) {
       setPreferences(profile.preferences.join(", "));
@@ -87,29 +86,27 @@ function LoginPage() {
 
   return (
     <div className="page-card">
-      <h1>{token ? "Account" : "Login"}</h1>
-      <p className="section-copy">
+      <h1>{token ? "Account" : "Welcome"}</h1>
+      <p className="page-subtitle">
         {token
-          ? "You are logged in and can save generated recipes."
-          : "Create an account or log in to save recipes and track your history."}
+          ? "Manage your dietary preferences and allergy defaults. These are applied automatically when generating recipes."
+          : "Create an account or log in to save recipes, track your generation history, and store food label scans."}
       </p>
 
       {!token && (
         <>
-          <div className="button-row">
+          <div className="auth-tabs">
             <button
               type="button"
               onClick={() => { setMode("login"); setMessage(""); setError(""); }}
-              disabled={mode === "login"}
-              className={mode !== "login" ? "secondary" : ""}
+              className={`auth-tab${mode === "login" ? " active" : ""}`}
             >
               Login
             </button>
             <button
               type="button"
               onClick={() => { setMode("signup"); setMessage(""); setError(""); }}
-              disabled={mode === "signup"}
-              className={mode !== "signup" ? "secondary" : ""}
+              className={`auth-tab${mode === "signup" ? " active" : ""}`}
             >
               Sign Up
             </button>
@@ -151,28 +148,44 @@ function LoginPage() {
         </>
       )}
 
-      {message && <p className="message success">{message}</p>}
-      {error && <p className="message error">{error}</p>}
+      {message && <p className="message success" style={{ marginTop: "0.75rem" }}>{message}</p>}
+      {error && <p className="message error" style={{ marginTop: "0.75rem" }}>{error}</p>}
 
       {token && profile && (
         <>
-          <hr className="card-divider" />
-          <h2>Saved Profile</h2>
-          <p className="section-copy">
-            These defaults are applied automatically when preference or allergy fields
-            are left empty on the Generate Recipe page.
-          </p>
-
-          <div className="tag-row" style={{ marginBottom: "1rem" }}>
-            {profile.preferences.length > 0
-              ? profile.preferences.map((item, index) => (
-                  <span key={index} className="tag">{item}</span>
-                ))
-              : <span className="empty-state">No preferences saved</span>}
-            {profile.allergies.map((item, index) => (
-              <span key={index} className="tag allergy">{item}</span>
-            ))}
+          <div className="profile-summary">
+            <div className="profile-summary-item">
+              <div className="summary-label">Email</div>
+              <div style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--color-text)" }}>{profile.email}</div>
+            </div>
+            <div className="profile-summary-item">
+              <div className="summary-label">Preferences</div>
+              <div className="tag-row" style={{ marginTop: "0.15rem" }}>
+                {profile.preferences.length > 0
+                  ? profile.preferences.map((item, index) => (
+                      <span key={index} className="tag preference">{item}</span>
+                    ))
+                  : <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}>None set</span>}
+              </div>
+            </div>
+            <div className="profile-summary-item">
+              <div className="summary-label">Allergies</div>
+              <div className="tag-row" style={{ marginTop: "0.15rem" }}>
+                {profile.allergies.length > 0
+                  ? profile.allergies.map((item, index) => (
+                      <span key={index} className="tag allergy">{item}</span>
+                    ))
+                  : <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}>None set</span>}
+              </div>
+            </div>
           </div>
+
+          <hr className="card-divider" />
+
+          <h2>Update Defaults</h2>
+          <p className="page-subtitle" style={{ marginBottom: "0.75rem" }}>
+            These values auto-fill when you leave the preference or allergy fields empty on the Generate page.
+          </p>
 
           <form onSubmit={handleProfileUpdate} className="form-stack">
             <div className="field-group">
@@ -184,6 +197,7 @@ function LoginPage() {
                 onChange={(e) => setPreferences(e.target.value)}
                 placeholder="e.g. halal, vegetarian"
               />
+              <p className="field-hint">Separate with commas</p>
             </div>
 
             <div className="field-group">
@@ -195,6 +209,7 @@ function LoginPage() {
                 onChange={(e) => setAllergies(e.target.value)}
                 placeholder="e.g. peanut, milk"
               />
+              <p className="field-hint">Separate with commas</p>
             </div>
 
             <button type="submit" disabled={loading}>

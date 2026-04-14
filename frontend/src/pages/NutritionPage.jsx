@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch, buildApiUrl } from "../lib/api";
 import NutritionGrid from "../components/NutritionGrid";
@@ -7,6 +7,7 @@ const PAGE_SIZE = 10;
 
 function NutritionPage() {
   const { token } = useAuth();
+  const fileInputRef = useRef(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState("");
   const [result, setResult] = useState(null);
@@ -134,54 +135,74 @@ function NutritionPage() {
 
   return (
     <div className="page-card">
-      <h1>Nutrition Info</h1>
-      <p className="section-copy">
-        Upload a nutrition label image to extract and structure its data using OCR and an LLM.
+      <h1>Food Labels</h1>
+      <p className="page-subtitle">
+        Upload a photo of a nutrition label to extract structured data using OCR and an LLM.
         {token
-          ? " Extracted results can be saved to your food labels."
-          : " Log in to save extracted labels."}
+          ? " Results can be saved to your label history with the original image."
+          : " Log in to save extractions to your history."}
       </p>
 
-      <form onSubmit={handleSubmit} className="form-stack">
-        <div className="field-group">
-          <label htmlFor="nutrition-image">Nutrition Label Image</label>
+      <form onSubmit={handleSubmit}>
+        <div
+          className={`file-drop-zone${selectedFile ? " has-file" : ""}`}
+          onClick={() => fileInputRef.current?.click()}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click(); }}
+        >
           <input
-            id="nutrition-image"
+            ref={fileInputRef}
             type="file"
             accept="image/*"
+            style={{ display: "none" }}
             onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
           />
+          {selectedFile ? (
+            <>
+              <span className="drop-icon" aria-hidden="true">&#x2705;</span>
+              <span className="drop-text">{selectedFile.name}</span>
+              <span className="drop-hint">Click to change file</span>
+            </>
+          ) : (
+            <>
+              <span className="drop-icon" aria-hidden="true">&#x1F4F7;</span>
+              <span className="drop-text">Click to select a nutrition label image</span>
+              <span className="drop-hint">JPG, PNG, WebP \u00B7 Max 5 MB</span>
+            </>
+          )}
         </div>
-        <button type="submit" disabled={loading || !selectedFile}>
-          {loading ? "Extracting..." : "Extract Nutrition"}
-        </button>
+
+        <div style={{ marginTop: "0.75rem" }}>
+          <button type="submit" disabled={loading || !selectedFile}>
+            {loading ? "Extracting..." : "Extract Nutrition"}
+          </button>
+        </div>
       </form>
 
-      {error && <p className="message error">{error}</p>}
+      {error && <p className="message error" style={{ marginTop: "0.5rem" }}>{error}</p>}
 
       {result && (
-        <div className="recipe-card">
+        <div className="recipe-card" style={{ marginTop: "1rem" }}>
           <h2>Extracted Nutrition</h2>
 
           {imagePreviewUrl && (
-            <div className="result-block" style={{ paddingTop: 0, borderTop: "none" }}>
+            <div style={{ marginBottom: "0.5rem" }}>
               <img
                 src={imagePreviewUrl}
                 alt={selectedFile?.name ? `Preview of ${selectedFile.name}` : "Label preview"}
                 className="ocr-image-preview"
               />
-              <p style={{ fontSize: "0.8rem", color: "#7a92a8", margin: "0 0 0.75rem" }}>
-                {selectedFile?.name}
-              </p>
+              <p className="history-meta" style={{ margin: 0 }}>{selectedFile?.name}</p>
             </div>
           )}
 
           {result.structured_nutrition.product_name && (
-            <p style={{ margin: "0 0 0.25rem" }}>
+            <p style={{ margin: "0.5rem 0 0.25rem" }}>
               <strong>{result.structured_nutrition.product_name}</strong>
               {result.structured_nutrition.serving_size && (
-                <span style={{ color: "#5b6f85", fontSize: "0.9rem" }}>
-                  {" "}· {result.structured_nutrition.serving_size} per serving
+                <span style={{ color: "var(--color-text-secondary)", fontSize: "0.85rem" }}>
+                  {" "}\u00B7 {result.structured_nutrition.serving_size} per serving
                 </span>
               )}
             </p>
@@ -206,7 +227,7 @@ function NutritionPage() {
                 onClick={saveExtraction}
                 disabled={saveLoading || isSaved}
               >
-                {isSaved ? "Saved ✓" : saveLoading ? "Saving..." : "Save Extraction"}
+                {isSaved ? "Saved \u2713" : saveLoading ? "Saving..." : "Save to Food Labels"}
               </button>
               {saveMessage && (
                 <p className={`message ${isSaved ? "success" : "error"}`}>
@@ -215,7 +236,7 @@ function NutritionPage() {
               )}
             </div>
           ) : (
-            <p className="message">Log in to save this extraction.</p>
+            <p className="message" style={{ marginTop: "0.5rem" }}>Log in to save this extraction.</p>
           )}
         </div>
       )}
@@ -231,16 +252,21 @@ function NutritionPage() {
             )}
           </div>
 
-          {historyLoading && <p className="section-copy">Loading...</p>}
+          {historyLoading && <div className="loading-bar">Loading labels...</div>}
           {historyError && <p className="message error">{historyError}</p>}
           {!historyLoading && !historyError && history.length === 0 && (
-            <p className="empty-state">No saved food labels yet.</p>
+            <div className="empty-state">
+              <span className="empty-state-icon" aria-hidden="true">&#x1F3F7;&#xFE0F;</span>
+              No saved food labels yet. Extract a label above and save it.
+            </div>
           )}
 
           {history.map((entry) => (
             <div key={entry.id} className="result-block">
               <div className="history-header">
-                <h3>{entry.source_filename}</h3>
+                <h3>
+                  {entry.structured_nutrition?.product_name || entry.source_filename}
+                </h3>
                 <span className="history-badge saved">
                   {new Date(entry.created_at).toLocaleDateString()}
                 </span>
@@ -251,16 +277,16 @@ function NutritionPage() {
                   src={buildApiUrl(entry.image_url)}
                   alt={`Label image: ${entry.source_filename}`}
                   className="ocr-image-preview"
-                  style={{ maxHeight: "200px" }}
+                  style={{ maxHeight: "180px" }}
                 />
               )}
 
-              {entry.structured_nutrition.product_name && (
-                <p style={{ margin: "0 0 0.5rem", fontSize: "0.9rem" }}>
+              {entry.structured_nutrition?.product_name && (
+                <p style={{ margin: "0 0 0.35rem", fontSize: "0.825rem" }}>
                   <strong>{entry.structured_nutrition.product_name}</strong>
                   {entry.structured_nutrition.serving_size && (
-                    <span style={{ color: "#5b6f85" }}>
-                      {" "}· {entry.structured_nutrition.serving_size} per serving
+                    <span style={{ color: "var(--color-text-secondary)" }}>
+                      {" "}\u00B7 {entry.structured_nutrition.serving_size} per serving
                     </span>
                   )}
                 </p>
@@ -281,7 +307,7 @@ function NutritionPage() {
                 disabled={historyPage <= 1 || historyLoading}
                 onClick={() => loadHistory(historyPage - 1)}
               >
-                ‹ Prev
+                &#8249; Prev
               </button>
               <span className="page-info">
                 Page {historyPage} of {historyTotalPages}
@@ -292,7 +318,7 @@ function NutritionPage() {
                 disabled={historyPage >= historyTotalPages || historyLoading}
                 onClick={() => loadHistory(historyPage + 1)}
               >
-                Next ›
+                Next &#8250;
               </button>
             </div>
           )}

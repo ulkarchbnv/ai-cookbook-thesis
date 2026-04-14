@@ -72,6 +72,7 @@ class RecipeResponse(BaseModel):
     generated_recipe_id: int | None = None
     title: str
     ingredients: list[str]
+    additional_ingredients: list[str] = Field(default_factory=list)
     preferences: list[str]
     allergies: list[str]
     steps: list[str]
@@ -91,6 +92,7 @@ class SavedRecipeResponse(BaseModel):
     id: int
     title: str
     ingredients: list[str]
+    additional_ingredients: list[str] = Field(default_factory=list)
     preferences: list[str]
     allergies: list[str]
     steps: list[str]
@@ -108,6 +110,7 @@ class GeneratedRecipeHistoryResponse(BaseModel):
     fingerprint: str
     title: str
     ingredients: list[str]
+    additional_ingredients: list[str] = Field(default_factory=list)
     preferences: list[str]
     allergies: list[str]
     steps: list[str]

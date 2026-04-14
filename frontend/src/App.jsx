@@ -17,17 +17,20 @@ function NavBar() {
         Home
       </NavLink>
       <NavLink to="/generate" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
-        Generate Recipe
+        Generate
       </NavLink>
       <NavLink to="/nutrition" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
-        Nutrition Info
+        Food Labels
       </NavLink>
       <NavLink to="/saved" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
-        Saved Recipes
+        Saved
       </NavLink>
       <NavLink to="/history" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
         History
       </NavLink>
+
+      <span className="nav-spacer" />
+
       <NavLink to="/login" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
         {token ? "Account" : "Login"}
       </NavLink>
@@ -44,23 +47,26 @@ function AppShell() {
   return (
     <div className="app-shell">
       <header className="site-header">
-        <div className="brand-block">
-          <p className="brand-kicker">AI Cookbook</p>
-          <p className="brand-copy">
-            Ingredient-based recipes, nutrition extraction, and saved cooking workflows.
-          </p>
+        <div className="brand-row">
+          <span className="brand-logo" aria-hidden="true">&#x1F373;</span>
+          <div>
+            <p className="brand-name">AI Cookbook</p>
+            <p className="brand-tagline">Ingredient-based recipes, nutrition extraction, and saved cooking workflows.</p>
+          </div>
         </div>
         <NavBar />
       </header>
 
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/generate" element={<GenerateRecipePage />} />
-        <Route path="/nutrition" element={<NutritionPage />} />
-        <Route path="/saved" element={<SavedRecipesPage />} />
-        <Route path="/history" element={<RecipeHistoryPage />} />
-        <Route path="/login" element={<LoginPage />} />
-      </Routes>
+      <main>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/generate" element={<GenerateRecipePage />} />
+          <Route path="/nutrition" element={<NutritionPage />} />
+          <Route path="/saved" element={<SavedRecipesPage />} />
+          <Route path="/history" element={<RecipeHistoryPage />} />
+          <Route path="/login" element={<LoginPage />} />
+        </Routes>
+      </main>
     </div>
   );
 }

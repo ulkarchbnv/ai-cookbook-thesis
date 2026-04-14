@@ -34,6 +34,7 @@ class GeneratedRecipe(Base):
     fingerprint = Column(String, nullable=False, index=True)
     title = Column(String, nullable=False)
     ingredients = Column(Text, nullable=False)
+    additional_ingredients = Column(Text, nullable=False, default="[]")
     preferences = Column(Text, nullable=False, default="[]")
     allergies = Column(Text, nullable=False, default="[]")
     steps = Column(Text, nullable=False)

@@ -5,6 +5,109 @@ import NutritionGrid from "../components/NutritionGrid";
 
 const PAGE_SIZE = 10;
 
+function HistoryCard({ entry }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="recipe-card">
+      <div className="recipe-hero">
+        {entry.image_url && (
+          <img
+            src={buildApiUrl(entry.image_url)}
+            alt={`Thumbnail for ${entry.title}`}
+            className="recipe-image-preview"
+          />
+        )}
+        <div>
+          <div className="history-header">
+            <h2>{entry.title}</h2>
+            <span className={`history-badge${entry.is_saved ? " saved" : ""}`}>
+              {entry.is_saved ? "Saved" : "Generated"}
+            </span>
+          </div>
+
+          <p className="history-meta">
+            {new Date(entry.created_at).toLocaleString()}
+            {entry.saved_at && ` \u00B7 Saved ${new Date(entry.saved_at).toLocaleDateString()}`}
+          </p>
+
+          <p className="section-label">Ingredients</p>
+          <div className="tag-row">
+            {entry.ingredients
+              .filter((item) => !(entry.additional_ingredients || []).includes(item))
+              .map((item, index) => (
+                <span key={index} className="tag">{item}</span>
+              ))}
+          </div>
+          {entry.additional_ingredients?.length > 0 && (
+            <div style={{ marginTop: "0.3rem" }}>
+              <p className="section-label">You may also need</p>
+              <div className="tag-row">
+                {entry.additional_ingredients.map((item, index) => (
+                  <span key={index} className="tag additional">{item}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {entry.preferences?.length > 0 && (
+            <div className="tag-row" style={{ marginTop: "0.25rem" }}>
+              {entry.preferences.map((item, index) => (
+                <span key={index} className="tag preference">{item}</span>
+              ))}
+            </div>
+          )}
+
+          {entry.allergies?.length > 0 && (
+            <div className="tag-row" style={{ marginTop: "0.25rem" }}>
+              {entry.allergies.map((item, index) => (
+                <span key={index} className="tag allergy">{item}</span>
+              ))}
+            </div>
+          )}
+
+          {entry.warnings?.length > 0 && (
+            <div style={{ marginTop: "0.35rem" }}>
+              {entry.warnings.map((warning, index) => (
+                <div key={`${entry.id}-w-${index}`} className="alert-box warning" style={{ marginBottom: "0.25rem" }}>
+                  {warning}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button
+            type="button"
+            className="detail-toggle"
+            onClick={() => setExpanded(!expanded)}
+          >
+            <span className={`toggle-arrow${expanded ? " open" : ""}`}>&#x25B6;</span>
+            {expanded ? "Hide details" : "Steps & nutrition"}
+          </button>
+        </div>
+      </div>
+
+      {expanded && (
+        <>
+          <div className="result-block">
+            <p className="section-title">Preparation Steps</p>
+            <ol className="result-list">
+              {entry.steps.map((step, index) => (
+                <li key={`${entry.id}-${index}`}>{step}</li>
+              ))}
+            </ol>
+          </div>
+
+          <div className="result-block">
+            <p className="section-title">Nutrition Estimate</p>
+            <NutritionGrid nutrition={entry.nutrition} />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function RecipeHistoryPage() {
   const { token } = useAuth();
   const [historyEntries, setHistoryEntries] = useState([]);
@@ -42,7 +145,7 @@ function RecipeHistoryPage() {
     return (
       <div className="page-card">
         <h1>Recipe History</h1>
-        <p className="section-copy">Please log in to view your recipe history.</p>
+        <p className="page-subtitle">Please log in to view your recipe history.</p>
       </div>
     );
   }
@@ -57,89 +160,22 @@ function RecipeHistoryPage() {
           </span>
         )}
       </div>
-      <p className="section-copy">
-        All generated recipes for your account, including those that were not saved.
+      <p className="page-subtitle">
+        Every recipe generated on your account, including those you didn't save.
+        Click a card to expand full details.
       </p>
 
-      {loading && <p className="section-copy">Loading...</p>}
+      {loading && <div className="loading-bar">Loading history...</div>}
       {error && <p className="message error">{error}</p>}
       {!loading && !error && historyEntries.length === 0 && (
-        <p className="empty-state">No generated recipe history yet.</p>
+        <div className="empty-state">
+          <span className="empty-state-icon" aria-hidden="true">&#x1F4CB;</span>
+          No generated recipes yet. Try generating one first.
+        </div>
       )}
 
       {historyEntries.map((entry) => (
-        <div key={entry.id} className="recipe-card">
-          <div className="history-header">
-            <h2>{entry.title}</h2>
-            <span className={`history-badge${entry.is_saved ? " saved" : ""}`}>
-              {entry.is_saved ? "Saved" : "Generated"}
-            </span>
-          </div>
-
-          {entry.image_url && (
-            <img
-              src={buildApiUrl(entry.image_url)}
-              alt={`Thumbnail for ${entry.title}`}
-              className="recipe-image-preview"
-            />
-          )}
-
-          <p style={{ fontSize: "0.85rem", color: "#7a92a8", margin: "0 0 0.75rem" }}>
-            {new Date(entry.created_at).toLocaleString()}
-            {entry.saved_at && ` · Saved ${new Date(entry.saved_at).toLocaleDateString()}`}
-          </p>
-
-          <p className="section-title">Ingredients</p>
-          <div className="tag-row">
-            {entry.ingredients.map((item, index) => (
-              <span key={index} className="tag">{item}</span>
-            ))}
-          </div>
-
-          {entry.preferences?.length > 0 && (
-            <>
-              <p className="section-title" style={{ marginTop: "0.75rem" }}>Dietary Preferences</p>
-              <div className="tag-row">
-                {entry.preferences.map((item, index) => (
-                  <span key={index} className="tag">{item}</span>
-                ))}
-              </div>
-            </>
-          )}
-
-          {entry.allergies?.length > 0 && (
-            <>
-              <p className="section-title" style={{ marginTop: "0.75rem" }}>Allergies</p>
-              <div className="tag-row">
-                {entry.allergies.map((item, index) => (
-                  <span key={index} className="tag allergy">{item}</span>
-                ))}
-              </div>
-            </>
-          )}
-
-          {entry.warnings?.length > 0 && (
-            <div style={{ margin: "0.5rem 0" }}>
-              {entry.warnings.map((warning, index) => (
-                <p key={`${entry.id}-w-${index}`} className="message error">{warning}</p>
-              ))}
-            </div>
-          )}
-
-          <div className="result-block">
-            <p className="section-title">Preparation Steps</p>
-            <ol className="result-list">
-              {entry.steps.map((step, index) => (
-                <li key={`${entry.id}-${index}`}>{step}</li>
-              ))}
-            </ol>
-          </div>
-
-          <div className="result-block">
-            <p className="section-title">Nutrition Estimate</p>
-            <NutritionGrid nutrition={entry.nutrition} />
-          </div>
-        </div>
+        <HistoryCard key={entry.id} entry={entry} />
       ))}
 
       {totalPages > 1 && (
@@ -150,7 +186,7 @@ function RecipeHistoryPage() {
             disabled={page <= 1 || loading}
             onClick={() => loadHistory(page - 1)}
           >
-            ‹ Prev
+            &#8249; Prev
           </button>
           <span className="page-info">
             Page {page} of {totalPages}
@@ -161,7 +197,7 @@ function RecipeHistoryPage() {
             disabled={page >= totalPages || loading}
             onClick={() => loadHistory(page + 1)}
           >
-            Next ›
+            Next &#8250;
           </button>
         </div>
       )}

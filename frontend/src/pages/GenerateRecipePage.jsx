@@ -81,21 +81,23 @@ function GenerateRecipePage() {
   return (
     <div className="page-card">
       <h1>Generate Recipe</h1>
-      <p className="section-copy">
-        Enter ingredients and optional dietary constraints to generate a structured recipe.
+      <p className="page-subtitle">
+        List your available ingredients below. The system uses retrieval-augmented
+        generation to create a structured recipe using only what you provide.
         {profile && " Your saved profile defaults apply when fields are left empty."}
       </p>
 
       <div className="field-grid">
-        <div className="field-group">
-          <label htmlFor="ingredients">Ingredients</label>
+        <div className="field-group" style={{ gridColumn: "1 / -1" }}>
+          <label htmlFor="ingredients">Ingredients *</label>
           <input
             id="ingredients"
             type="text"
             value={ingredients}
             onChange={(e) => setIngredients(e.target.value)}
-            placeholder="e.g. chicken, rice, tomato"
+            placeholder="e.g. chicken, rice, tomato, onion"
           />
+          <p className="field-hint">Separate with commas. Up to 25 ingredients.</p>
         </div>
         <div className="field-group">
           <label htmlFor="preferences">Dietary Preferences</label>
@@ -119,64 +121,77 @@ function GenerateRecipePage() {
         </div>
       </div>
 
-      <div className="button-row">
-        <button type="button" onClick={generateRecipe} disabled={loading}>
-          {loading ? "Generating..." : "Generate Recipe"}
-        </button>
-      </div>
+      <button type="button" onClick={generateRecipe} disabled={loading}>
+        {loading ? "Generating..." : "Generate Recipe"}
+      </button>
 
-      {error && <p className="message error">{error}</p>}
+      {error && <p className="message error" style={{ marginTop: "0.75rem" }}>{error}</p>}
 
       {recipe && (
-        <div className="recipe-card">
-          {recipe.image_url && (
-            <img
-              src={buildApiUrl(recipe.image_url)}
-              alt={`Thumbnail for ${recipe.title}`}
-              className="recipe-image-preview"
-            />
-          )}
+        <div className="recipe-card" style={{ marginTop: "1rem" }}>
+          <div className="recipe-hero">
+            {recipe.image_url && (
+              <img
+                src={buildApiUrl(recipe.image_url)}
+                alt={`Thumbnail for ${recipe.title}`}
+                className="recipe-image-preview"
+              />
+            )}
+            <div>
+              <h2>{recipe.title}</h2>
 
-          <h2>{recipe.title}</h2>
+              {recipe.warnings?.length > 0 && (
+                <div style={{ marginBottom: "0.5rem" }}>
+                  {recipe.warnings.map((warning, index) => (
+                    <div key={index} className="alert-box warning" style={{ marginBottom: "0.35rem" }}>
+                      {warning}
+                    </div>
+                  ))}
+                </div>
+              )}
 
-          {recipe.warnings?.length > 0 && (
-            <div style={{ marginBottom: "0.75rem" }}>
-              {recipe.warnings.map((warning, index) => (
-                <p key={index} className="message error">{warning}</p>
-              ))}
+              <p className="section-label">Ingredients</p>
+              <div className="tag-row">
+                {recipe.ingredients
+                  .filter((item) => !(recipe.additional_ingredients || []).includes(item))
+                  .map((item, index) => (
+                    <span key={index} className="tag">{item}</span>
+                  ))}
+              </div>
+              {recipe.additional_ingredients?.length > 0 && (
+                <div style={{ marginTop: "0.5rem" }}>
+                  <p className="section-label">You may also need</p>
+                  <div className="tag-row">
+                    {recipe.additional_ingredients.map((item, index) => (
+                      <span key={index} className="tag additional">{item}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {recipe.preferences?.length > 0 && (
+                <div style={{ marginTop: "0.5rem" }}>
+                  <p className="section-label">Preferences</p>
+                  <div className="tag-row">
+                    {recipe.preferences.map((item, index) => (
+                      <span key={index} className="tag preference">{item}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {recipe.allergies?.length > 0 && (
+                <div style={{ marginTop: "0.5rem" }}>
+                  <p className="section-label">Allergies</p>
+                  <div className="tag-row">
+                    {recipe.allergies.map((item, index) => (
+                      <span key={index} className="tag allergy">{item}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-
-          <hr className="card-divider" />
-
-          <p className="section-title">Ingredients</p>
-          <div className="tag-row">
-            {recipe.ingredients.map((item, index) => (
-              <span key={index} className="tag">{item}</span>
-            ))}
           </div>
-
-          {recipe.preferences?.length > 0 && (
-            <>
-              <p className="section-title" style={{ marginTop: "0.75rem" }}>Dietary Preferences</p>
-              <div className="tag-row">
-                {recipe.preferences.map((item, index) => (
-                  <span key={index} className="tag">{item}</span>
-                ))}
-              </div>
-            </>
-          )}
-
-          {recipe.allergies?.length > 0 && (
-            <>
-              <p className="section-title" style={{ marginTop: "0.75rem" }}>Allergies</p>
-              <div className="tag-row">
-                {recipe.allergies.map((item, index) => (
-                  <span key={index} className="tag allergy">{item}</span>
-                ))}
-              </div>
-            </>
-          )}
 
           <div className="result-block">
             <p className="section-title">Preparation Steps</p>
@@ -201,7 +216,7 @@ function GenerateRecipePage() {
                 onClick={saveRecipe}
                 disabled={saveLoading || isSaved || !recipe.generated_recipe_id}
               >
-                {isSaved ? "Saved ✓" : saveLoading ? "Saving..." : "Save Recipe"}
+                {isSaved ? "Saved \u2713" : saveLoading ? "Saving..." : "Save Recipe"}
               </button>
               {!recipe.generated_recipe_id && (
                 <p className="message">Log in before generating to enable saving.</p>
@@ -211,7 +226,7 @@ function GenerateRecipePage() {
               )}
             </div>
           ) : (
-            <p className="message">Log in to save this recipe.</p>
+            <p className="message" style={{ marginTop: "0.5rem" }}>Log in to save this recipe.</p>
           )}
         </div>
       )}

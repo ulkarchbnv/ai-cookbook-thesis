@@ -5,6 +5,100 @@ import NutritionGrid from "../components/NutritionGrid";
 
 const PAGE_SIZE = 10;
 
+function RecipeCard({ recipe }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="recipe-card">
+      <div className="recipe-hero">
+        {recipe.image_url && (
+          <img
+            src={buildApiUrl(recipe.image_url)}
+            alt={`Thumbnail for ${recipe.title}`}
+            className="recipe-image-preview"
+          />
+        )}
+        <div>
+          <div className="history-header">
+            <h2>{recipe.title}</h2>
+            {recipe.saved_at && (
+              <span className="history-badge saved">
+                Saved {new Date(recipe.saved_at).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+
+          <p className="section-label">Ingredients</p>
+          <div className="tag-row">
+            {recipe.ingredients
+              .filter((item) => !(recipe.additional_ingredients || []).includes(item))
+              .map((item, index) => (
+                <span key={index} className="tag">{item}</span>
+              ))}
+          </div>
+          {recipe.additional_ingredients?.length > 0 && (
+            <div style={{ marginTop: "0.3rem" }}>
+              <p className="section-label">You may also need</p>
+              <div className="tag-row">
+                {recipe.additional_ingredients.map((item, index) => (
+                  <span key={index} className="tag additional">{item}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {recipe.preferences?.length > 0 && (
+            <div style={{ marginTop: "0.4rem" }}>
+              <div className="tag-row">
+                {recipe.preferences.map((item, index) => (
+                  <span key={index} className="tag preference">{item}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {recipe.allergies?.length > 0 && (
+            <div style={{ marginTop: "0.3rem" }}>
+              <div className="tag-row">
+                {recipe.allergies.map((item, index) => (
+                  <span key={index} className="tag allergy">{item}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <button
+            type="button"
+            className="detail-toggle"
+            onClick={() => setExpanded(!expanded)}
+          >
+            <span className={`toggle-arrow${expanded ? " open" : ""}`}>&#x25B6;</span>
+            {expanded ? "Hide details" : "Steps & nutrition"}
+          </button>
+        </div>
+      </div>
+
+      {expanded && (
+        <>
+          <div className="result-block">
+            <p className="section-title">Preparation Steps</p>
+            <ol className="result-list">
+              {recipe.steps.map((step, index) => (
+                <li key={`${recipe.id}-${index}`}>{step}</li>
+              ))}
+            </ol>
+          </div>
+
+          <div className="result-block">
+            <p className="section-title">Nutrition Estimate</p>
+            <NutritionGrid nutrition={recipe.nutrition} />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function SavedRecipesPage() {
   const { token } = useAuth();
   const [recipes, setRecipes] = useState([]);
@@ -42,7 +136,7 @@ function SavedRecipesPage() {
     return (
       <div className="page-card">
         <h1>Saved Recipes</h1>
-        <p className="section-copy">Please log in to view your saved recipes.</p>
+        <p className="page-subtitle">Please log in to view your saved recipes.</p>
       </div>
     );
   }
@@ -57,76 +151,21 @@ function SavedRecipesPage() {
           </span>
         )}
       </div>
-      <p className="section-copy">Recipes you saved while using the app.</p>
+      <p className="page-subtitle">
+        Your bookmarked recipes. Click any card to expand preparation steps and nutrition details.
+      </p>
 
-      {loading && <p className="section-copy">Loading...</p>}
+      {loading && <div className="loading-bar">Loading recipes...</div>}
       {error && <p className="message error">{error}</p>}
       {!loading && !error && recipes.length === 0 && (
-        <p className="empty-state">No saved recipes yet.</p>
+        <div className="empty-state">
+          <span className="empty-state-icon" aria-hidden="true">&#x1F4D6;</span>
+          No saved recipes yet. Generate a recipe and save it to see it here.
+        </div>
       )}
 
       {recipes.map((recipe) => (
-        <div key={recipe.id} className="recipe-card">
-          <div className="history-header">
-            <h2>{recipe.title}</h2>
-            {recipe.saved_at && (
-              <span className="history-badge saved">
-                Saved {new Date(recipe.saved_at).toLocaleDateString()}
-              </span>
-            )}
-          </div>
-
-          {recipe.image_url && (
-            <img
-              src={buildApiUrl(recipe.image_url)}
-              alt={`Thumbnail for ${recipe.title}`}
-              className="recipe-image-preview"
-            />
-          )}
-
-          <p className="section-title">Ingredients</p>
-          <div className="tag-row">
-            {recipe.ingredients.map((item, index) => (
-              <span key={index} className="tag">{item}</span>
-            ))}
-          </div>
-
-          {recipe.preferences?.length > 0 && (
-            <>
-              <p className="section-title" style={{ marginTop: "0.75rem" }}>Dietary Preferences</p>
-              <div className="tag-row">
-                {recipe.preferences.map((item, index) => (
-                  <span key={index} className="tag">{item}</span>
-                ))}
-              </div>
-            </>
-          )}
-
-          {recipe.allergies?.length > 0 && (
-            <>
-              <p className="section-title" style={{ marginTop: "0.75rem" }}>Allergies</p>
-              <div className="tag-row">
-                {recipe.allergies.map((item, index) => (
-                  <span key={index} className="tag allergy">{item}</span>
-                ))}
-              </div>
-            </>
-          )}
-
-          <div className="result-block">
-            <p className="section-title">Preparation Steps</p>
-            <ol className="result-list">
-              {recipe.steps.map((step, index) => (
-                <li key={`${recipe.id}-${index}`}>{step}</li>
-              ))}
-            </ol>
-          </div>
-
-          <div className="result-block">
-            <p className="section-title">Nutrition Estimate</p>
-            <NutritionGrid nutrition={recipe.nutrition} />
-          </div>
-        </div>
+        <RecipeCard key={recipe.id} recipe={recipe} />
       ))}
 
       {totalPages > 1 && (
@@ -137,7 +176,7 @@ function SavedRecipesPage() {
             disabled={page <= 1 || loading}
             onClick={() => loadRecipes(page - 1)}
           >
-            ‹ Prev
+            &#8249; Prev
           </button>
           <span className="page-info">
             Page {page} of {totalPages}
@@ -148,7 +187,7 @@ function SavedRecipesPage() {
             disabled={page >= totalPages || loading}
             onClick={() => loadRecipes(page + 1)}
           >
-            Next ›
+            Next &#8250;
           </button>
         </div>
       )}

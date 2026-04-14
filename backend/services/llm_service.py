@@ -92,14 +92,69 @@ def _find_output_restriction_violations(
 
 PANTRY_STAPLES: frozenset[str] = frozenset({
     "salt", "pepper", "black pepper", "white pepper", "oil", "olive oil",
-    "vegetable oil", "cooking oil", "water", "sugar", "flour", "baking powder",
-    "baking soda", "vinegar", "soy sauce", "cornstarch",
+    "vegetable oil", "cooking oil", "canola oil", "sesame oil",
+    "water", "ice", "sugar", "brown sugar",
+    "flour", "all-purpose flour", "baking powder", "baking soda",
+    "vinegar", "soy sauce", "cornstarch",
+    "butter", "garlic", "onion", "ginger",
+    "lemon juice", "lime juice",
+    "paprika", "cumin", "oregano", "basil", "thyme", "parsley",
+    "chili flakes", "red pepper flakes", "cayenne",
+    "cinnamon", "nutmeg", "bay leaf",
+    "tomato paste", "ketchup", "mustard", "mayonnaise",
+    "cooking spray",
+})
+
+_NOISE_WORDS: frozenset[str] = frozenset({
+    "fresh", "dried", "ground", "chopped", "sliced", "diced", "minced",
+    "grated", "shredded", "crushed", "whole", "large", "small", "medium",
+    "thin", "thick", "finely", "roughly", "cooked", "raw", "frozen",
+    "canned", "packed", "to", "taste", "for", "of", "and", "or",
+    "about", "approximately", "optional", "as", "needed",
 })
 
 
+def _normalize(text: str) -> str:
+    return " ".join(text.strip().lower().split())
+
+
+def _significant_words(text: str) -> set[str]:
+    words = set(re.findall(r"[a-z]{2,}", _normalize(text)))
+    return words - _NOISE_WORDS
+
+
 def _is_pantry_staple(ingredient: str) -> bool:
-    normalized = " ".join(ingredient.strip().lower().split())
-    return any(staple in normalized for staple in PANTRY_STAPLES)
+    normalized = _normalize(ingredient)
+    if any(staple in normalized for staple in PANTRY_STAPLES):
+        return True
+    sig = _significant_words(ingredient)
+    return any(sig and sig <= _significant_words(staple) or _significant_words(staple) <= sig
+               for staple in PANTRY_STAPLES if _significant_words(staple))
+
+
+def _matches_allowed_ingredient(generated: str, allowed_set: set[str], allowed_words_map: dict[str, set[str]]) -> bool:
+    gen_normalized = _normalize(generated)
+    gen_normalized_no_qty = re.sub(r"^[\d.,/\s]+(g|kg|ml|l|oz|cup|cups|tbsp|tsp|tablespoons?|teaspoons?|lb|lbs|pieces?|cloves?|slices?|bunch|handful)?\s*", "", gen_normalized).strip()
+
+    if gen_normalized in allowed_set or gen_normalized_no_qty in allowed_set:
+        return True
+
+    gen_words = _significant_words(generated)
+    if not gen_words:
+        return True
+
+    for allowed, allowed_words in allowed_words_map.items():
+        if not allowed_words:
+            continue
+        if allowed_words <= gen_words or gen_words <= allowed_words:
+            return True
+        overlap = gen_words & allowed_words
+        if overlap and len(overlap) >= max(1, min(len(gen_words), len(allowed_words)) - 1):
+            return True
+        if any(aw in gen_normalized_no_qty for aw in allowed_words if len(aw) >= 4):
+            return True
+
+    return False
 
 
 def _find_ingredient_drift(
@@ -107,17 +162,16 @@ def _find_ingredient_drift(
     allowed_ingredients: list[str],
 ) -> list[str]:
     """Return generated ingredients that are not in the allowed set and not pantry staples."""
-    allowed_normalized = {" ".join(i.strip().lower().split()) for i in allowed_ingredients}
+    allowed_normalized = {_normalize(i) for i in allowed_ingredients}
+    allowed_words_map = {ing: _significant_words(ing) for ing in allowed_normalized}
+
     drift: list[str] = []
     for ingredient in recipe_json.get("ingredients", []):
         if not isinstance(ingredient, str):
             continue
-        normalized = " ".join(ingredient.strip().lower().split())
-        if normalized in allowed_normalized:
+        if _matches_allowed_ingredient(ingredient, allowed_normalized, allowed_words_map):
             continue
         if _is_pantry_staple(ingredient):
-            continue
-        if any(allowed.split()[0] in normalized for allowed in allowed_normalized if allowed):
             continue
         drift.append(ingredient)
     return drift
@@ -162,11 +216,11 @@ Return only valid JSON with this exact structure:
   }}
 }}
 
-STRICT INGREDIENT CONSTRAINT (highest priority):
-- The "ingredients" array MUST contain ONLY ingredients from this list: {ingredient_list}
-- The ONLY permitted additions are essential pantry staples: salt, pepper, oil, water, sugar, flour, baking powder, vinegar, soy sauce, cornstarch
-- You MUST NOT add any other ingredient not in the user's list or the pantry staples above
-- Do not add vegetables, proteins, sauces, spices, or any food item not already listed by the user
+INGREDIENT GUIDELINES (important):
+- Prioritize ingredients from the user's list: {ingredient_list}
+- You may include common pantry staples (salt, pepper, oil, water, sugar, flour, butter, garlic, onion, basic spices, vinegar, soy sauce, cornstarch)
+- If a small number of additional ingredients would significantly improve the recipe quality, you may add them — but keep additions minimal (1-3 items max)
+- List each ingredient as a plain name with quantity, e.g. "200g penne pasta" or "1 cup cream" — always include the original ingredient name as the user wrote it
 - If the user's ingredients are limited, work with what is available and simplify the recipe accordingly
 
 Additional rules:
@@ -255,24 +309,22 @@ def generate_structured_recipe(request: RecipeRequest) -> RecipeResponse:
             )
             recipe_json = json.loads(recipe_text)
             last_violations = _find_output_restriction_violations(recipe_json, restrictions)
-            drift_violations = _find_ingredient_drift(recipe_json, safe_ingredients)
 
-            all_violations = last_violations[:]
-            if drift_violations:
-                all_violations.append(
-                    "ingredient-drift: these ingredients were not provided by the user and are not pantry staples: "
-                    + ", ".join(drift_violations[:8])
-                )
-
-            if not all_violations:
+            if not last_violations:
+                additional = _find_ingredient_drift(recipe_json, safe_ingredients)
+                recipe_json["additional_ingredients"] = additional
                 recipe_json["warnings"] = warnings
+                if additional:
+                    recipe_json["warnings"].append(
+                        "This recipe suggests a few extra ingredients you may need: "
+                        + ", ".join(additional)
+                    )
                 return RecipeResponse.model_validate(recipe_json)
 
             violation_note = (
                 "The previous output violated these rules and must be corrected: "
-                + "; ".join(all_violations)
-                + ". Regenerate the recipe strictly using only the user-provided ingredients "
-                + f"({', '.join(safe_ingredients)}) plus allowed pantry staples, and avoid restricted terms."
+                + "; ".join(last_violations)
+                + ". Regenerate the recipe and avoid all restricted terms."
             )
             messages.append({"role": "assistant", "content": recipe_text})
             messages.append({"role": "user", "content": violation_note})
