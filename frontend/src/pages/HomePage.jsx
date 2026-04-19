@@ -31,9 +31,9 @@ function HomePage() {
           <span className="feature-num">01</span>
           <strong>Structured Recipe Generation &amp; Personalisation</strong>
           <p>
-            Generates structured recipes with ingredients, preparation steps,
-            and nutritional details using retrieval-augmented generation (RAG), personalised
-            to dietary restrictions and allergen preferences.
+            Generates structured recipes using RAG by combining user-provided ingredients
+            with relevant retrieved context. The recipe is synthesised by an LLM and validated
+            against dietary preferences and allergen constraints.
           </p>
         </div>
         <div className="feature-card">
