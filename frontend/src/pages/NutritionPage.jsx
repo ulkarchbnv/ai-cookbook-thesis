@@ -160,15 +160,19 @@ function NutritionPage() {
           />
           {selectedFile ? (
             <>
-              <span className="drop-icon" aria-hidden="true">&#x2705;</span>
+              <span className="drop-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
               <span className="drop-text">{selectedFile.name}</span>
               <span className="drop-hint">Click to change file</span>
             </>
           ) : (
             <>
-              <span className="drop-icon" aria-hidden="true">&#x1F4F7;</span>
+              <span className="drop-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+              </span>
               <span className="drop-text">Click to select a nutrition label image</span>
-              <span className="drop-hint">JPG, PNG, WebP \u00B7 Max 5 MB</span>
+              <span className="drop-hint">JPG, PNG, WebP · Max 5 MB</span>
             </>
           )}
         </div>
@@ -256,7 +260,9 @@ function NutritionPage() {
           {historyError && <p className="message error">{historyError}</p>}
           {!historyLoading && !historyError && history.length === 0 && (
             <div className="empty-state">
-              <span className="empty-state-icon" aria-hidden="true">&#x1F3F7;&#xFE0F;</span>
+              <span className="empty-state-icon" aria-hidden="true">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+              </span>
               No saved food labels yet. Extract a label above and save it.
             </div>
           )}

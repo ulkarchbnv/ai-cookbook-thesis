@@ -6,14 +6,17 @@ function HomePage() {
 
   return (
     <div className="page-card">
-      <div className="hero-section">
-        <h1>AI Cookbook</h1>
-        <p className="page-subtitle" style={{ margin: "0 auto 0.5rem", textAlign: "center" }}>
-          Generate structured recipes from the ingredients you already have,
-          scan nutrition labels for instant data extraction, and keep
-          everything organized in your personal cooking history.
-        </p>
-        <div className="hero-actions">
+      <div className="hero-split">
+        <div className="hero-editorial">
+          <p className="hero-eyebrow">RAG · OCR · LLM-Based Personalization</p>
+          <h1>AI Cookbook with Ingredient-Based Search</h1>
+          <p className="page-subtitle">
+            An AI-powered system that generates structured recipes from user-provided ingredients,
+            integrates OCR-based nutritional data extraction from food labels, and adapts outputs
+            based on dietary preferences and allergen constraints.
+          </p>
+        </div>
+        <div className="hero-cta-col">
           <Link to="/generate">
             <button type="button">Generate a Recipe</button>
           </Link>
@@ -25,29 +28,30 @@ function HomePage() {
 
       <div className="feature-grid">
         <div className="feature-card">
-          <div className="feature-icon" aria-hidden="true">&#x1F952;</div>
-          <strong>Ingredient-Based Recipes</strong>
+          <span className="feature-num">01</span>
+          <strong>Structured Recipe Generation &amp; Personalisation</strong>
           <p>
-            Enter what you have on hand. The system retrieves relevant context
-            from a recipe knowledge base (RAG) and generates a structured recipe
-            using only your ingredients.
+            Generates structured recipes with ingredients, preparation steps,
+            and nutritional details using retrieval-augmented generation (RAG), personalised
+            to dietary restrictions and allergen preferences.
           </p>
         </div>
         <div className="feature-card">
-          <div className="feature-icon" aria-hidden="true">&#x1F4F7;</div>
-          <strong>Food Label Scanner</strong>
+          <span className="feature-num">02</span>
+          <strong>OCR-Based Nutrition Label Processing</strong>
           <p>
-            Upload a photo of any nutrition label. Google Vision extracts the text,
-            then an LLM structures it into calories, protein, carbs, fat, and more.
+            Upload an image of any food label. Text is extracted via Google
+            Cloud Vision OCR and refined by a language model into structured JSON for
+            consistent interpretation of nutritional values.
           </p>
         </div>
         <div className="feature-card">
-          <div className="feature-icon" aria-hidden="true">&#x1F4BE;</div>
-          <strong>Save &amp; Review</strong>
+          <span className="feature-num">03</span>
+          <strong>Data Persistence &amp; Backend Integration</strong>
           <p>
-            {token
-              ? "Your recipes and food labels are saved with images and full history, all paginated for easy browsing."
-              : "Log in to save recipes, track generation history, and review past food label scans with original images."}
+            A lightweight backend handles recipe generation requests and
+            manages user data. Preferences, generated recipes, and interaction history
+            are stored for improved continuity and usability.
           </p>
         </div>
       </div>

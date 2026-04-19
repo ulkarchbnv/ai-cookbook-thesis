@@ -47,12 +47,8 @@ function AppShell() {
   return (
     <div className="app-shell">
       <header className="site-header">
-        <div className="brand-row">
-          <span className="brand-logo" aria-hidden="true">&#x1F373;</span>
-          <div>
-            <p className="brand-name">AI Cookbook</p>
-            <p className="brand-tagline">Ingredient-based recipes, nutrition extraction, and saved cooking workflows.</p>
-          </div>
+        <div className="brand-wordmark">
+          <p className="brand-name">AI Cookbook</p>
         </div>
         <NavBar />
       </header>

@@ -72,7 +72,9 @@ function RecipeCard({ recipe }) {
             className="detail-toggle"
             onClick={() => setExpanded(!expanded)}
           >
-            <span className={`toggle-arrow${expanded ? " open" : ""}`}>&#x25B6;</span>
+            <span className={`toggle-arrow${expanded ? " open" : ""}`}>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><polygon points="1,1 9,5 1,9"/></svg>
+          </span>
             {expanded ? "Hide details" : "Steps & nutrition"}
           </button>
         </div>
@@ -159,7 +161,9 @@ function SavedRecipesPage() {
       {error && <p className="message error">{error}</p>}
       {!loading && !error && recipes.length === 0 && (
         <div className="empty-state">
-          <span className="empty-state-icon" aria-hidden="true">&#x1F4D6;</span>
+          <span className="empty-state-icon" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          </span>
           No saved recipes yet. Generate a recipe and save it to see it here.
         </div>
       )}
