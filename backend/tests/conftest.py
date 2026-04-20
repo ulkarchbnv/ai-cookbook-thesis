@@ -6,9 +6,11 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
 from sqlalchemy.orm import close_all_sessions
-from sqlalchemy.orm import sessionmaker
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 
 @pytest.fixture()
@@ -23,6 +25,7 @@ def client(monkeypatch):
 
     for module_name in [
         "backend.main",
+        "backend.routes",
         "backend.routes.auth",
         "backend.routes.ocr",
         "backend.routes.rag_debug",
@@ -43,16 +46,10 @@ def client(monkeypatch):
     ocr_routes = importlib.import_module("backend.routes.ocr")
     rag_debug_routes = importlib.import_module("backend.routes.rag_debug")
 
-    test_engine = create_engine(
-        f"sqlite:///{database_path.as_posix()}",
-        connect_args={"check_same_thread": False},
-    )
-    testing_session_local = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
-
-    models.Base.metadata.create_all(bind=test_engine)
+    models.Base.metadata.create_all(bind=database.engine)
 
     def override_get_db():
-        db = testing_session_local()
+        db = database.SessionLocal()
         try:
             yield db
         finally:
@@ -68,10 +65,52 @@ def client(monkeypatch):
 
     main.app.dependency_overrides.clear()
     close_all_sessions()
-    models.Base.metadata.drop_all(bind=test_engine)
-    test_engine.dispose()
+    models.Base.metadata.drop_all(bind=database.engine)
     database.engine.dispose()
 
     if database_path.exists():
         database_path.unlink()
     shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+@pytest.fixture()
+def user_credentials():
+    return {
+        "email": "tester@example.com",
+        "password": "strong-password-123",
+    }
+
+
+@pytest.fixture()
+def create_user(client):
+    def _create_user(email: str, password: str):
+        response = client.post(
+            "/signup",
+            json={"email": email, "password": password},
+        )
+        return response
+
+    return _create_user
+
+
+@pytest.fixture()
+def login_user(client, create_user):
+    def _login_user(email: str = "tester@example.com", password: str = "strong-password-123"):
+        create_user(email, password)
+        response = client.post(
+            "/login",
+            json={"email": email, "password": password},
+        )
+        return response
+
+    return _login_user
+
+
+@pytest.fixture()
+def auth_headers(login_user):
+    def _auth_headers(email: str = "tester@example.com", password: str = "strong-password-123"):
+        login_response = login_user(email, password)
+        token = login_response.json()["access_token"]
+        return {"Authorization": f"Bearer {token}"}
+
+    return _auth_headers

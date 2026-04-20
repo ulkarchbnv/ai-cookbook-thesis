@@ -17,7 +17,7 @@ def validate_image_file(file: UploadFile) -> None:
 def validate_image_size(file_bytes: bytes) -> None:
     if len(file_bytes) > settings.max_ocr_upload_bytes:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail="The uploaded image is too large.",
         )
 
@@ -29,7 +29,7 @@ def prepare_image_for_ocr(file_bytes: bytes) -> bytes:
         image.load()
     except Image.DecompressionBombError as exc:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail="The uploaded image is too large to process safely.",
         ) from exc
     except (UnidentifiedImageError, OSError, ValueError) as exc:
@@ -40,7 +40,7 @@ def prepare_image_for_ocr(file_bytes: bytes) -> bytes:
 
     if image.width * image.height > settings.max_ocr_image_pixels:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail="The uploaded image dimensions are too large.",
         )
 
