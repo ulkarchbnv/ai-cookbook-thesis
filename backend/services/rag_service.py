@@ -23,7 +23,7 @@ ALLERGY_ALIASES: dict[str, set[str]] = {
         "pistachio",
         "hazelnut",
     },
-    "shellfish": {"shellfish", "shrimp", "prawn", "crab", "lobster", "clam", "mussel"},
+    "shellfish": {"shellfish", "shrimp", "prawn", "crab", "lobster", "clam", "mussel", "oyster", "oysters", "oyster sauce"},
     "seafood": {
         "seafood",
         "fish",
