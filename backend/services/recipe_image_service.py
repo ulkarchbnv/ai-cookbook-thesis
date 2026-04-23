@@ -1,21 +1,9 @@
-import base64
 import hashlib
 import re
 from pathlib import Path
 
-from fastapi import HTTPException, status
-from openai import OpenAI
-
 from backend.config import settings
-
-
-def _get_client() -> OpenAI:
-    if not settings.openai_api_key:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="OPENAI_API_KEY is not configured.",
-        )
-    return OpenAI(api_key=settings.openai_api_key)
+from backend.services.recipe_image_provider import get_recipe_image_provider
 
 
 def _normalize_text(value: str) -> str:
@@ -109,30 +97,8 @@ def ensure_recipe_thumbnail(
             "image_prompt": prompt,
         }
 
-    client = _get_client()
-
-    try:
-        response = client.images.generate(
-            model=settings.openai_image_model,
-            prompt=prompt,
-            size="1024x1024",
-            quality="low",
-            output_format="png",
-        )
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Recipe image generation failed.",
-        ) from exc
-
-    image_data = response.data[0].b64_json if response.data else None
-    if not image_data:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Recipe image generation returned no image data.",
-        )
-
-    thumbnail_path.write_bytes(base64.b64decode(image_data))
+    image_bytes = get_recipe_image_provider().generate_png(prompt)
+    thumbnail_path.write_bytes(image_bytes)
 
     return {
         "image_cache_key": cache_key,

@@ -7,12 +7,12 @@ from openai import OpenAI
 import re
 from backend.config import settings
 from backend.schemas import NutritionLabelData, OcrExtractionResponse
-from backend.services.ocr_google_vision_provider import extract_text_with_google_vision
 from backend.services.ocr_image_processing import (
     prepare_image_for_ocr,
     validate_image_file,
     validate_image_size,
 )
+from backend.services.ocr_provider import get_ocr_provider
 
 _ALLOWED_OCR_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp"}
 
@@ -107,12 +107,6 @@ OCR text:
 
 
 def extract_nutrition_label(file: UploadFile) -> OcrExtractionResponse:
-    if settings.ocr_provider != "google_vision":
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Unsupported OCR provider: {settings.ocr_provider}",
-        )
-
     validate_image_file(file)
     file_bytes = file.file.read()
 
@@ -131,7 +125,7 @@ def extract_nutrition_label(file: UploadFile) -> OcrExtractionResponse:
         pass
 
     prepared_image = prepare_image_for_ocr(file_bytes)
-    raw_text = extract_text_with_google_vision(prepared_image)
+    raw_text = get_ocr_provider().extract_text(prepared_image)
     structured_nutrition = _structure_nutrition_text(raw_text)
 
     return OcrExtractionResponse(
