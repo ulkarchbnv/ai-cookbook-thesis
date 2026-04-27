@@ -1,0 +1,119 @@
+\chapter{Introduction}
+\label{ch:intro}
+
+\section{Motivation and Problem Statement}
+
+Deciding what to cook from whatever ingredients happen to be available is a
+common practical problem. Users typically know what is in their kitchen, but
+translating that into a concrete, safe, and personalized meal requires browsing
+multiple recipe websites, manually filtering results, and adapting instructions
+to fit dietary restrictions or allergies. This process is repetitive and
+effortful, yet users still often lack a simple tool that accepts a list of
+ingredients and returns a structured recipe adapted to personal constraints.
+
+A related inconvenience arises with packaged food products. Nutritional
+information is printed on product labels in a format that is easy to read in
+the moment but difficult to store, compare, or reuse digitally. Users who
+want to track or inspect the nutritional content of packaged goods have no
+practical way to capture that data without manually transcribing it, which
+is both time-consuming and error-prone.
+
+This thesis addresses both problems through a single integrated application.
+The core feature allows users to submit a custom ingredient list along with
+optional dietary preferences and allergy constraints, and receive a structured
+recipe generated specifically from that input. A secondary feature accepts
+an image of a food product label, extracts the printed nutritional text
+automatically, and allows users to store the result in a structured digital form. Together,
+these features form a coherent tool for ingredient-aware cooking decisions
+and nutritional data capture within a single personalized cooking
+assistant. 
+
+\section{Goals and Objectives}
+
+The main goal of the thesis is to deliver a working web application that
+generates personalized recipes from user-provided ingredients and supports
+OCR-based nutrition label processing. The project commits to four concrete
+and verifiable objectives.
+
+The first objective is to implement an ingredient-based recipe generation
+workflow. The system accepts a list of ingredients and optional dietary
+preferences and allergies, validates the request, and returns a structured
+recipe containing a title, ingredient list, preparation steps, nutritional
+estimate, and system warnings. To improve the relevance of generated
+results, the workflow uses retrieval-augmented generation: before producing
+a recipe, the system retrieves relevant entries from an indexed recipe corpus
+and uses them as contextual grounding for the language model.
+
+The second objective is to implement user-specific personalization and
+persistence. Authenticated users can create accounts, save dietary
+preferences and allergies, store generated recipes, and access both saved
+recipes and their full generation history. This ensures the application
+supports repeated and personalized use rather than one-time generation.
+
+The third objective is to implement OCR-based nutrition label extraction.
+The system accepts uploaded label images, validates and preprocesses them,
+extracts text through an OCR provider, transforms the raw output into
+structured nutritional fields, and allows authenticated users to save their
+labels and extracted data.
+
+The fourth objective is to implement and document the backend and data model
+that support these workflows. This covers the system architecture, request
+handling, authentication, persistent storage, media handling, and the
+service boundaries required to coordinate recipe generation, OCR
+processing, and history management.
+
+\section{Scope and Constraints}
+
+The scope of the thesis covers the implemented \emph{AI Cookbook with
+Ingredient-Based Search} application and all features available in the final
+system: ingredient-based recipe generation, preference- and allergy-aware
+personalization, OCR-based nutrition label extraction, user authentication,
+and storage of recipe and label history. It also covers the technical
+documentation of the system, including the application architecture, main
+request flows, persistent data model, and testing material.
+
+The thesis does not aim to provide a general introduction to artificial
+intelligence, nutrition science, or OCR theory beyond what is necessary to
+explain the implemented solution.
+
+Several constraints apply. Recipe generation, nutritional structuring, and
+image generation depend on external AI services, meaning that response
+quality and availability are not fully controlled by the local application.
+OCR accuracy depends on the quality and readability of uploaded images.
+Dietary preferences, allergy-related handling, and nutritional values
+displayed by the system, whether extracted from labels or estimated for
+generated recipes, are intended as application output for user guidance and
+do not constitute certified dietary or medical advice.
+
+The project also does not aim to provide production-grade infrastructure,
+clinical nutritional analysis, or guaranteed factual correctness for every
+AI-generated or OCR-derived value. Its purpose is to demonstrate a working
+and well-documented implementation of the designed workflows within the
+scope of a bachelor thesis.
+
+The project is also constrained by its scope as a bachelor thesis. The
+system was designed to be functionally complete and documentable within
+limited development time. The thesis therefore focuses on the implemented
+features and their software engineering realization rather than
+production-scale concerns such as distributed deployment or expert-level
+nutritional analytics. Additional feature expansion and broader
+implementation improvements are therefore treated as future work.
+
+\section{Thesis Roadmap}
+
+Chapter 2 presents the user documentation and describes how the application
+is configured, launched, and used from the perspective of its intended users.
+
+Chapter 3 presents the design documentation, covering the software
+requirements, system architecture, data model, and user interface design.
+
+Chapter 4 presents the implementation details of the application, including
+the frontend and backend realization of the main workflows and supporting
+services.
+
+Chapter 5 presents the testing methodology and results, including automated,
+manual, and AI-specific evaluation material used to validate the system.
+
+Chapter 6 concludes the thesis by summarizing the achieved results,
+discussing the limitations of the current implementation, and outlining
+directions for future improvement.

@@ -1,0 +1,1116 @@
+\section{Implementation}
+\label{ch:implementation}
+
+This chapter shows how the design from Chapter~3 appears in the
+codebase. It connects the class, sequence, component, and data design
+artifacts to the implemented backend and frontend modules so that the
+design decisions can be checked against the actual source code.
+
+\subsection{Development environment and technology stack}
+
+The project is implemented as a monorepo with separate backend and
+frontend runtimes. The backend uses Python~3 with FastAPI~0.133.1,
+SQLAlchemy~2.0.48, Alembic~1.7.7, ChromaDB~1.5.5, OpenAI~2.26.0,
+Google Cloud Vision~3.11.0, Pillow~12.0.0, Pydantic~2.12.5,
+Pydantic Settings~2.12.5, and Uvicorn~0.41.0. The frontend uses
+React~19.2.0, React Router DOM~7.13.1, and Vite~7.3.1. These exact
+versions are defined in \texttt{backend/requirements.txt} and
+\texttt{frontend/package.json}, which makes the implementation
+reproducible instead of describing only a generic stack.
+
+The development environment was intentionally lightweight and local.
+Source code was edited primarily in Visual Studio Code, while Git was
+used for version control across both frontend and backend changes. The
+backend runtime was managed through a Python virtual environment and the
+dependency manifest in \texttt{backend/requirements.txt}. The frontend
+runtime was managed through Node.js and the dependency manifests
+\texttt{frontend/package.json} and \texttt{frontend/package-lock.json}.
+Database schema evolution was handled through Alembic migration files,
+and LaTeX source for the thesis itself was maintained in the same
+repository so that code and documentation could evolve together.
+
+The technology choices follow the layered architecture from
+Section~3.2. FastAPI supports thin route modules with built-in request
+validation. SQLAlchemy and Alembic realize the relational model in
+code. React and Vite support the page-oriented frontend structure, and
+ChromaDB makes retrieval part of the working system instead of a design
+idea described only on paper.
+
+\subsection{Repository structure and code organization}
+
+The repository structure makes the architectural decomposition visible
+before reading individual modules:
+
+\begin{lstlisting}[caption={Repository structure of the implemented system},label={lst:repo-tree}]
+ai-cookbook-thesis/
+|-- backend/
+|   |-- main.py
+|   |-- config.py
+|   |-- database.py
+|   |-- dependencies.py
+|   |-- models.py
+|   |-- schemas.py
+|   |-- security.py
+|   |-- rate_limit.py
+|   |-- routes/
+|   |   |-- auth.py
+|   |   |-- ocr.py
+|   |   |-- rag_debug.py
+|   |   `-- recipes.py
+|   |-- services/
+|   |   |-- embedding_service.py
+|   |   |-- llm_service.py
+|   |   |-- ocr_image_processing.py
+|   |   |-- ocr_provider.py
+|   |   |-- ocr_service.py
+|   |   |-- recipe_image_provider.py
+|   |   |-- recipe_image_service.py
+|   |   |-- rag_service.py
+|   |   `-- vector_store_service.py
+|   |-- scripts/
+|   |   |-- prepare_recipes.py
+|   |   `-- index_recipes.py
+|   |-- tests/
+|   `-- requirements.txt
+|-- frontend/
+|   |-- package.json
+|   `-- src/
+|       |-- App.jsx
+|       |-- context/AuthContext.jsx
+|       |-- lib/api.js
+|       |-- components/NutritionGrid.jsx
+|       `-- pages/
+|           |-- GenerateRecipePage.jsx
+|           |-- NutritionPage.jsx
+|           |-- SavedRecipesPage.jsx
+|           |-- RecipeHistoryPage.jsx
+|           `-- LoginPage.jsx
+`-- alembic/
+    |-- env.py
+    `-- versions/
+\end{lstlisting}
+
+Table~\ref{tab:repo-directories} summarizes the purpose of the main
+directories and shows how the repository structure reflects the
+implemented architecture.
+
+\begin{table}[H]
+	\centering
+	\scriptsize
+	\renewcommand{\arraystretch}{1.2}
+	\begin{tabular}{|p{3.4cm}|p{10.5cm}|}
+		\hline
+		\textbf{Directory or area} & \textbf{Purpose in the project} \\
+		\hline
+		\texttt{backend/} & Contains the server-side application, including routing, validation, business logic, persistence, security, and integration with retrieval and external AI services. \\
+		\hline
+		\texttt{backend/routes/} & Defines the HTTP entry points for authentication, recipe generation, recipe persistence, OCR extraction, and debugging-oriented retrieval access. \\
+		\hline
+		\texttt{backend/services/} & Holds the multi-step workflow logic for recipe generation, retrieval, OCR, image handling, and provider abstraction so that route handlers remain thin. \\
+		\hline
+		\texttt{backend/scripts/} & Contains offline preparation utilities used to clean the recipe corpus and build the persistent retrieval index. \\
+		\hline
+		\texttt{backend/tests/} & Stores automated backend tests for routes, validation, security behavior, and service-level logic. \\
+		\hline
+		\texttt{frontend/} & Contains the browser-facing application, its dependency manifest, and the React source used for the main user workflows. \\
+		\hline
+		\texttt{frontend/src/pages/} & Implements the top-level task pages such as recipe generation, OCR extraction, saved recipes, history, and login/account management. \\
+		\hline
+		\texttt{frontend/src/components/} & Stores reusable presentation elements shared across pages, such as structured result display components. \\
+		\hline
+		\texttt{frontend/src/context/} & Maintains shared frontend state, most importantly authentication state and current-profile information. \\
+		\hline
+		\texttt{frontend/src/lib/} & Groups client-side utility code for API access and URL construction so that request logic is not duplicated across pages. \\
+		\hline
+		\texttt{alembic/} and \texttt{alembic/versions/} & Store migration configuration and revision history for relational schema changes, keeping database evolution explicit and reproducible. \\
+		\hline
+	\end{tabular}
+	\caption{Purpose of the main repository directories}
+	\label{tab:repo-directories}
+\end{table}
+
+This file system mirrors the layered design from Chapter~3. Route
+modules act as a thin API boundary, service modules contain business
+logic and provider orchestration, schema classes define validated data
+contracts, and ORM models implement persistence. This is also the point
+where the service-orchestration boundary described in the design chapter
+becomes visible:
+\texttt{routes/recipes.py} exposes one endpoint to the client, while
+multiple service modules collaborate behind that boundary.
+
+\subsubsection{Development workflow and repository discipline}
+
+The development workflow was organized around small, feature-oriented
+changes rather than large monolithic rewrites. Backend services, API
+routes, migrations, frontend pages, and tests were versioned together in
+the same repository so that every non-trivial feature could be traced as
+one coherent change set. In practice, this was especially important for
+features that crossed multiple layers, such as profile-default-aware
+recipe generation or OCR history persistence, because they required
+coordinated updates in route logic, schemas, frontend state handling,
+and tests.
+
+Version-control work followed the same feature-oriented structure.
+Changes were developed as focused units around one task or one related
+set of tasks instead of mixing unrelated edits into the same revision.
+For example, a persistence-related change typically combined the route
+logic, schema updates, frontend integration, and migration file needed
+for that feature. This kept the history easier to review and reduced the
+risk of partial changes that would compile but leave one layer out of
+sync with the others.
+
+Dependency and environment management were also repository-driven. The
+backend dependency set is declared in
+\texttt{backend/requirements.txt}, frontend dependencies in
+\texttt{frontend/package.json}, and environment-dependent settings are
+centralized through the backend configuration layer and the
+\texttt{.env} file format. Database evolution is versioned explicitly
+through Alembic revision files instead of implicit schema changes. This
+workflow keeps the implementation reproducible: a given repository state
+contains not only application code, but also the dependency manifests,
+migration history, and indexing scripts needed to reconstruct the
+working system.
+
+\subsection{Core application logic and complex features}
+
+This section focuses on the implementation of the main complex features
+promised in the project proposal. The first two are the structured
+recipe-generation workflow and the OCR-based nutrition-label workflow.
+The third, data persistence and backend integration, is covered in
+detail later in Section~4.5 because it spans relational schema design,
+ORM mapping, migration history, and query behavior.
+
+\subsubsection{Application bootstrap and request entry points}
+
+The backend entry point is \texttt{backend/main.py}. It does more than
+create a FastAPI object: it prepares the runtime environment, installs
+cross-cutting middleware, mounts media storage, and registers feature
+routers. This directly realizes the component diagram from Figure~3.2.
+
+\begin{lstlisting}[language=Python,caption={FastAPI bootstrap in \texttt{backend/main.py}},label={lst:main-bootstrap}]
+app = FastAPI(title="AI Cookbook API")
+Path("backend/media").mkdir(parents=True, exist_ok=True)
+Path(settings.recipe_thumbnail_directory).mkdir(parents=True, exist_ok=True)
+Path(settings.ocr_upload_directory).mkdir(parents=True, exist_ok=True)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[settings.frontend_origin],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.add_middleware(
+    RateLimitMiddleware,
+    default_rule=RateLimitRule(
+        max_requests=settings.default_rate_limit_requests,
+        window_seconds=settings.default_rate_limit_window_seconds,
+    ),
+    route_rules={
+        "/signup": RateLimitRule(...),
+        "/generate-recipe": RateLimitRule(...),
+        "/ocr/extract": RateLimitRule(...),
+    },
+)
+
+app.mount("/media", StaticFiles(directory="backend/media"), name="media")
+app.include_router(auth.router)
+app.include_router(recipes.router)
+app.include_router(ocr.router)
+app.include_router(rag_debug.router)
+\end{lstlisting}
+
+This bootstrap code mainly provides the shared runtime context for the
+feature-specific workflows discussed next. It registers the route groups
+and installs the middleware and media handling that those workflows rely
+on.
+
+\subsubsection{User-specific defaults and authenticated request context}
+
+Authentication is implemented in three modules that work together:
+\texttt{backend/security.py} contains password hashing and JWT helpers,
+\texttt{backend/dependencies.py} resolves the current user from the
+token, and \texttt{backend/routes/auth.py} exposes the HTTP endpoints.
+The hashing and verification calls are implemented as follows:
+
+\begin{lstlisting}[language=Python,caption={Password hashing utilities in \texttt{backend/security.py}},label={lst:auth-hashing}]
+password_hash = PasswordHash.recommended()
+
+def hash_password(password: str) -> str:
+    return password_hash.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return password_hash.verify(plain_password, hashed_password)
+\end{lstlisting}
+
+The dependency that enforces ownership of user-specific data is defined
+in \texttt{backend/dependencies.py}:
+
+\begin{lstlisting}[language=Python,caption={JWT-based current-user dependency},label={lst:current-user-dependency}]
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
+
+def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+) -> User:
+    user = _get_user_from_token(token, db)
+    if user is None:
+        raise credentials_exception
+    return user
+\end{lstlisting}
+
+This function is the implementation-level counterpart of the ownership
+relations in the use-case and class diagrams. Endpoints for saving
+recipes, browsing history, and saving OCR results depend on the
+resolved \texttt{User} instance instead of trusting client-supplied
+identifiers.
+
+Profile defaults are persisted in \texttt{backend/routes/auth.py} and
+later reused by the frontend when generation fields are left empty:
+
+\begin{lstlisting}[language=Python,caption={Profile update persistence in \texttt{backend/routes/auth.py}},label={lst:profile-update}]
+@router.put("/me", response_model=UserResponse)
+def update_current_user_profile(...):
+    current_user.preferences = json.dumps(profile.preferences)
+    current_user.allergies = json.dumps(profile.allergies)
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return _user_to_response(current_user)
+\end{lstlisting}
+
+\subsubsection{Structured recipe generation and personalization}
+
+Recipe generation is the most complex workflow in the system. It
+combines request validation, safety filtering, retrieval, prompt
+construction, output verification, optional image generation, and
+persistence. The route in \texttt{backend/routes/recipes.py} acts as a
+thin facade: it delegates generation to the language-model service and
+thumbnail generation to the image service, then optionally persists the
+result for the authenticated user.
+
+Personalization enters the workflow at more than one point. User
+preferences and allergies can arrive directly in the request or through
+stored profile defaults, and they influence both the initial filtering
+step and the later prompt construction.
+
+The first non-trivial step is conflict detection. The service checks
+whether user-provided ingredients violate allergy or preference
+constraints before retrieval or generation starts:
+
+\begin{lstlisting}[language=Python,caption={Conflict analysis in \texttt{backend/services/llm\_service.py}},label={lst:conflict-analysis}]
+allergy_conflicts = find_conflicting_ingredients(
+    request.ingredients,
+    request.allergies,
+)
+preference_conflicts = find_preference_conflicting_ingredients(
+    request.ingredients,
+    request.preferences,
+)
+safe_ingredients = _remove_conflicting_ingredients(
+    request.ingredients,
+    conflicting_ingredients,
+)
+
+if not safe_ingredients:
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="All provided ingredients conflict with the selected allergies or dietary preferences.",
+    )
+\end{lstlisting}
+
+This safety-oriented preprocessing is the concrete implementation of the
+restriction logic discussed in Chapter~3. It is also one of the points
+where the sequence diagram can be verified against real code.
+
+After filtering, the backend retrieves grounded context from the Chroma
+collection. The retrieval call is implemented in
+\texttt{backend/services/rag\_service.py}:
+
+\begin{lstlisting}[language=Python,caption={Vector retrieval query in \texttt{backend/services/rag\_service.py}},label={lst:rag-query}]
+collection = get_collection()
+query_text = build_retrieval_query(request)
+query_embedding = create_embeddings([query_text])[0]
+response = collection.query(
+    query_embeddings=[query_embedding],
+    n_results=settings.rag_candidate_count,
+    include=["metadatas", "distances"],
+)
+\end{lstlisting}
+
+The prompt sent to the LLM is not generic. It is assembled from the
+filtered ingredient list, user constraints, and retrieved recipe
+context. A shortened version of the prompt builder shows this clearly:
+
+\begin{lstlisting}[language=Python,caption={Prompt construction in \texttt{backend/services/llm\_service.py}},label={lst:recipe-prompt}]
+return f"""
+You are generating a new recipe for an AI cookbook application.
+
+User ingredients: {ingredient_list}.
+Dietary preferences: {", ".join(request.preferences) if request.preferences else "none"}.
+Allergies to avoid: {", ".join(request.allergies) if request.allergies else "none"}.
+
+Retrieved recipe context (use only as structural inspiration, do NOT copy ingredients):
+{context_block}
+
+Return only valid JSON with this exact structure:
+{{
+  "title": "string",
+  "ingredients": ["string", "string"],
+  "preferences": ["string"],
+  "allergies": ["string"],
+  "steps": ["string", "string", "string"],
+  "nutrition_estimate": {{
+    "calories": 0,
+    "protein": "string",
+    "carbs": "string",
+    "fat": "string"
+  }}
+}}
+""".strip()
+\end{lstlisting}
+
+The implementation does not trust the first model response blindly. It
+checks for restriction violations and performs one correction cycle when
+necessary:
+
+\begin{lstlisting}[language=Python,caption={Output validation and retry loop in \texttt{backend/services/llm\_service.py}},label={lst:retry-loop}]
+messages: list[dict] = [{"role": "user", "content": prompt}]
+
+for _ in range(2):
+    response = client.chat.completions.create(
+        model=settings.openai_model,
+        messages=messages,
+        temperature=0.7,
+    )
+    recipe_text = _strip_code_fences(response.choices[0].message.content or "")
+    recipe_json = json.loads(recipe_text)
+    last_violations = _find_output_restriction_violations(recipe_json, restrictions)
+
+    if not last_violations:
+        additional = _find_ingredient_drift(recipe_json, safe_ingredients)
+        recipe_json["additional_ingredients"] = additional
+        recipe_json["warnings"] = warnings
+        return RecipeResponse.model_validate(recipe_json)
+
+    violation_note = (
+        "The previous output violated these rules and must be corrected: "
+        + "; ".join(last_violations)
+    )
+    messages.append({"role": "assistant", "content": recipe_text})
+    messages.append({"role": "user", "content": violation_note})
+\end{lstlisting}
+
+This retry loop is the strongest implementation evidence that recipe
+generation is realized as a fixed multi-stage workflow rather than a
+single opaque model call. Validation, retrieval, prompt construction,
+output checking, corrective retry, and response shaping appear as
+explicit stages in code, which is the implementation-level counterpart
+of the workflow diagrams and design rationale from Chapter~3.
+
+\subsubsection{OCR-based nutrition label processing}
+
+The OCR subsystem is implemented as a two-stage pipeline: optical text
+recognition followed by semantic structuring into validated nutrition
+fields. The abstraction boundary for OCR providers is defined in
+\texttt{backend/services/ocr\_provider.py}:
+
+\begin{lstlisting}[language=Python,caption={OCR provider strategy in \texttt{backend/services/ocr\_provider.py}},label={lst:ocr-provider}]
+class OcrProvider(ABC):
+    @abstractmethod
+    def extract_text(self, image_bytes: bytes) -> str:
+        """Extract raw OCR text from an image payload."""
+
+class GoogleVisionOcrProvider(OcrProvider):
+    def extract_text(self, image_bytes: bytes) -> str:
+        return extract_text_with_google_vision(image_bytes)
+
+@lru_cache(maxsize=1)
+def get_ocr_provider() -> OcrProvider:
+    if settings.ocr_provider == "google_vision":
+        return GoogleVisionOcrProvider()
+\end{lstlisting}
+
+This implements the provider-substitution mechanism described in the
+design chapter. The OCR workflow depends on an application-level
+interface and can switch concrete providers without changing the route
+or higher-level service logic.
+
+Before OCR is executed, images are validated and normalized in
+\texttt{backend/services/ocr\_image\_processing.py}:
+
+\begin{lstlisting}[language=Python,caption={Image preprocessing for OCR},label={lst:ocr-preprocess}]
+def prepare_image_for_ocr(file_bytes: bytes) -> bytes:
+    image = Image.open(BytesIO(file_bytes))
+    image.load()
+
+    normalized = ImageOps.exif_transpose(image)
+    grayscale = ImageOps.grayscale(normalized)
+    contrast_ready = ImageOps.autocontrast(grayscale)
+    enlarged = contrast_ready.resize(
+        (contrast_ready.width * 2, contrast_ready.height * 2)
+    )
+
+    buffer = BytesIO()
+    enlarged.save(buffer, format="PNG")
+    return buffer.getvalue()
+\end{lstlisting}
+
+The second OCR stage turns raw text into structured JSON. The LLM prompt
+shows that the expected schema is explicit and validated later through
+Pydantic:
+
+\begin{lstlisting}[language=Python,caption={Nutrition-structuring prompt in \texttt{backend/services/ocr\_service.py}},label={lst:ocr-prompt}]
+prompt = f"""
+You are given OCR text from a food nutrition label.
+Extract only the nutrition information you can confidently identify.
+
+Return only valid JSON in this exact structure:
+{{
+  "product_name": "string or null",
+  "serving_size": "string or null",
+  "calories": 0,
+  "protein_g": 0,
+  "carbs_g": 0,
+  "fat_g": 0,
+  "sugar_g": 0,
+  "sodium_mg": 0,
+  "fiber_g": 0
+}}
+""".strip()
+\end{lstlisting}
+
+\subsubsection{Supporting image generation and caching}
+
+Recipe thumbnails are generated only after the textual recipe has
+already been accepted. The implementation first derives a deterministic
+cache key from normalized ingredient data:
+
+\begin{lstlisting}[language=Python,caption={Thumbnail cache key derivation in \texttt{backend/services/recipe\_image\_service.py}},label={lst:image-cache-key}]
+def build_recipe_image_cache_key(
+    title: str,
+    ingredients: list[str],
+    preferences: list[str],
+    allergies: list[str],
+) -> str:
+    normalized_ingredients = sorted(
+        _normalize_text(item) for item in ingredients if item.strip()
+    )
+    digest_source = ",".join(normalized_ingredients)
+    return hashlib.sha256(digest_source.encode("utf-8")).hexdigest()[:24]
+\end{lstlisting}
+
+The cache lookup and provider delegation are implemented in the same
+service:
+
+\begin{lstlisting}[language=Python,caption={Thumbnail reuse and generation logic},label={lst:image-cache-lookup}]
+thumbnail_path = _get_thumbnail_path(cache_key)
+
+if thumbnail_path.exists():
+    return {
+        "image_cache_key": cache_key,
+        "image_path": str(thumbnail_path.as_posix()),
+        "image_url": _to_public_image_url(cache_key),
+        "image_prompt": prompt,
+    }
+
+image_bytes = get_recipe_image_provider().generate_png(prompt)
+thumbnail_path.write_bytes(image_bytes)
+\end{lstlisting}
+
+The concrete provider for image generation is again represented through
+an abstract interface and a provider-specific implementation:
+
+\begin{lstlisting}[language=Python,caption={Recipe image provider in \texttt{backend/services/recipe\_image\_provider.py}},label={lst:image-provider}]
+class RecipeImageProvider(ABC):
+    @abstractmethod
+    def generate_png(self, prompt: str) -> bytes:
+        """Generate a PNG image for the given prompt."""
+
+class OpenAIRecipeImageProvider(RecipeImageProvider):
+    def generate_png(self, prompt: str) -> bytes:
+        response = self._client.images.generate(
+            model=settings.openai_image_model,
+            prompt=prompt,
+            size="1024x1024",
+            quality="low",
+            output_format="png",
+        )
+\end{lstlisting}
+
+This code provides supporting infrastructure for the recipe-generation
+feature. Thumbnail generation is not the primary feature outcome, but it
+improves the usability of generated results and saved-history views
+without changing the main textual workflow.
+
+\subsubsection{Request protection}
+
+Request throttling is implemented in \texttt{backend/rate\_limit.py} as
+custom middleware instead of an external gateway dependency. The
+middleware keeps an in-memory bucket per client and route:
+
+\begin{lstlisting}[language=Python,caption={Rate-limiting middleware structure},label={lst:rate-limit}]
+@dataclass(frozen=True)
+class RateLimitRule:
+    max_requests: int
+    window_seconds: int
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        rule = self._resolve_rule(request)
+        client_identifier = self._get_client_identifier(request)
+        key = f"{request.method}:{request.url.path}:{client_identifier}"
+        allowed, retry_after = self.rate_limiter.check(key, rule)
+
+        if not allowed:
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Rate limit exceeded. Please try again later."},
+                headers={"Retry-After": str(retry_after)},
+            )
+\end{lstlisting}
+
+The route-specific limits visible earlier in Listing~\ref{lst:main-bootstrap}
+show that authentication, recipe generation, and OCR extraction are
+protected more strictly than ordinary reads. This is a concrete example
+of a cross-cutting concern being realized in middleware rather than
+inside every individual route function.
+
+\subsection{Frontend implementation}
+
+\subsubsection{Application shell and routing}
+
+The frontend is organized as a React single-page application whose
+top-level router maps directly to the main workflows from the use-case
+and navigation diagrams. The routes are declared in
+\texttt{frontend/src/App.jsx}, while each major use case is implemented
+as its own page component under \texttt{frontend/src/pages/}. This
+keeps the frontend aligned with the screen-flow diagram from
+Section~3.4.
+
+The page organization is intentionally task-oriented. The Home page
+provides entry points into the two primary AI-supported workflows,
+Generate and Food Labels. The Login/Account page combines
+authentication-related interaction with profile-default management, so
+the user does not have to navigate to a separate settings area. The
+Saved and History pages then separate two different persistence views:
+one for explicitly bookmarked recipes and one for the full generation
+history. This mirrors the frontend route structure visible in
+\texttt{App.jsx} and keeps each page responsible for one coherent user
+task.
+
+\subsubsection{Centralized API access}
+
+HTTP communication is centralized in \texttt{frontend/src/lib/api.js}.
+This module provides a single base URL resolver and a reusable
+\texttt{apiFetch()} wrapper that turns non-success responses into
+JavaScript errors with backend-supplied detail messages when available.
+This design keeps page components focused on user interaction and local
+state instead of repeating low-level request boilerplate. It also gives
+the frontend one consistent place to adapt API-base configuration across
+development environments.
+
+\subsubsection{Authentication state management}
+
+Shared authentication state is implemented through the React context in
+\texttt{frontend/src/context/AuthContext.jsx}:
+
+\begin{lstlisting}[language=Java,caption={Authentication context in \texttt{frontend/src/context/AuthContext.jsx}},label={lst:auth-context}]
+const AuthContext = createContext(null);
+
+export function AuthProvider({ children }) {
+  const [token, setToken] = useState(() => localStorage.getItem("token"));
+  const [profile, setProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  useEffect(() => {
+    if (!token) {
+      setProfile(null);
+      return;
+    }
+
+    const loadProfile = async () => {
+      const data = await apiFetch("/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setProfile(data);
+    };
+
+    loadProfile();
+  }, [token]);
+}
+\end{lstlisting}
+
+This module is the frontend counterpart of the backend
+\texttt{get\_current\_user} dependency. The context stores the token,
+loads the user profile from \texttt{/me}, and exposes state that other
+pages use to decide whether save actions or account-aware defaults are
+available.
+
+\subsubsection{Recipe-generation page}
+
+The most interesting frontend behavior is the fallback from manual
+fields to stored profile defaults. It is implemented directly in
+\texttt{frontend/src/pages/GenerateRecipePage.jsx}:
+
+\begin{lstlisting}[language=Java,caption={Profile-default fallback on the generation page},label={lst:profile-fallback-frontend}]
+const manualPreferences = preferences.split(",").map((i) => i.trim()).filter(Boolean);
+const manualAllergies = allergies.split(",").map((i) => i.trim()).filter(Boolean);
+
+const payload = {
+  ingredients: parsedIngredients,
+  preferences: manualPreferences.length > 0 ? manualPreferences : profile?.preferences || [],
+  allergies: manualAllergies.length > 0 ? manualAllergies : profile?.allergies || [],
+};
+\end{lstlisting}
+
+This short block is an important implementation detail because it shows
+how profile management and recipe generation are connected across the
+frontend and backend. The feature was discussed in the design chapter,
+but here it becomes visible as a concrete data-flow decision.
+
+The same page also shows how the generated recipe identifier is used to
+persist a bookmarked recipe only after successful generation:
+
+\begin{lstlisting}[language=Java,caption={Saving a generated recipe from the frontend},label={lst:save-recipe-frontend}]
+await apiFetch("/recipes", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  },
+  body: JSON.stringify({ generated_recipe_id: recipe.generated_recipe_id }),
+});
+\end{lstlisting}
+
+The same page also illustrates the frontend state pattern used
+throughout the application: input state is kept locally, asynchronous
+actions toggle explicit loading flags, and result or error state is
+rendered conditionally. Recipe generation, OCR extraction, profile
+updates, and history loading all follow this same approach, which keeps
+page behavior easy to reason about without introducing a heavier global
+state solution.
+
+\subsubsection{OCR and history-oriented pages}
+
+The Food Labels page combines upload interaction, OCR result rendering,
+save behavior, and paginated history loading in a single task-oriented
+view. After the user selects an image, the page constructs a
+\texttt{FormData} payload for \texttt{/ocr/extract}, renders the raw OCR
+text together with the structured nutrition result, and conditionally
+enables saving when the user is authenticated. The page also loads
+saved OCR history through page-number and page-size query parameters,
+which makes the backend pagination contract visible in the frontend.
+
+The Saved Recipes page and Recipe History page follow the same
+data-access pattern. Both request paginated backend data, maintain local
+\texttt{loading}, \texttt{error}, \texttt{page}, and
+\texttt{totalPages} state, and render pagination controls only when more
+than one page exists. The difference is semantic rather than structural:
+the Saved page filters for explicitly bookmarked recipes, while the
+History page displays all generated recipe entries, including unsaved
+ones and their warnings. This close structural similarity is useful
+because it keeps persistence-related pages consistent for the user while
+still preserving their different purposes.
+
+\subsubsection{Structured result presentation}
+
+Structured nutritional output is rendered through the reusable
+\texttt{frontend/src/components/NutritionGrid.jsx} component. The
+component accepts a nutrition object and an optional field list, which
+allows the same grid to display the compact recipe nutrition estimate on
+the Generate, Saved, and History pages, and the richer OCR nutrition
+schema on the Food Labels page. This is a small but meaningful frontend
+abstraction: presentation logic for structured nutrition data is kept in
+one component instead of being duplicated across multiple pages.
+
+\subsection{Persistence implementation}
+
+\subsubsection{Relational schema in executable form}
+
+The relational design from Chapter~3 is not only diagrammed; it is
+materialized through ORM mappings and migration files. The resulting
+tables remain small in number but rich enough to capture ownership,
+save-state transitions, timestamps, and the denormalized structured
+payloads returned by the application. The following DDL-style excerpt
+shows the schema shape that the ORM and Alembic revisions realize:
+
+\begin{lstlisting}[language=SQL,caption={Representative relational DDL for the implemented schema},label={lst:ddl-schema}]
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY,
+    email VARCHAR NOT NULL UNIQUE,
+    password VARCHAR NOT NULL,
+    preferences TEXT NOT NULL DEFAULT '[]',
+    allergies TEXT NOT NULL DEFAULT '[]',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE generated_recipes (
+    id INTEGER PRIMARY KEY,
+    fingerprint VARCHAR NOT NULL,
+    title VARCHAR NOT NULL,
+    ingredients TEXT NOT NULL,
+    additional_ingredients TEXT NOT NULL DEFAULT '[]',
+    preferences TEXT NOT NULL DEFAULT '[]',
+    allergies TEXT NOT NULL DEFAULT '[]',
+    steps TEXT NOT NULL,
+    nutrition TEXT NOT NULL,
+    warnings TEXT NOT NULL DEFAULT '[]',
+    image_url VARCHAR,
+    image_path VARCHAR,
+    image_cache_key VARCHAR,
+    image_prompt TEXT,
+    is_saved BOOLEAN NOT NULL DEFAULT FALSE,
+    saved_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    user_id INTEGER REFERENCES users(id)
+);
+
+CREATE TABLE ocr_extractions (
+    id INTEGER PRIMARY KEY,
+    source_filename VARCHAR NOT NULL,
+    raw_text TEXT NOT NULL,
+    structured_nutrition TEXT NOT NULL,
+    image_path VARCHAR,
+    image_url VARCHAR,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    user_id INTEGER NOT NULL REFERENCES users(id)
+);
+\end{lstlisting}
+
+This representation is useful because it makes the key decisions
+visible in one place: the ownership model is implemented through foreign
+keys, recipe persistence permits a nullable owner because guest
+generation exists conceptually, and structured variable-length content
+is stored as serialized text rather than decomposed into many auxiliary
+tables.
+
+\subsubsection{ORM entities}
+
+The relational model from Chapter~3 is implemented in
+\texttt{backend/models.py}. The \texttt{GeneratedRecipe} entity is the
+most important example because it combines ownership, save state,
+thumbnail metadata, and several intentionally serialized fields:
+
+\begin{lstlisting}[language=Python,caption={\texttt{GeneratedRecipe} ORM mapping},label={lst:generated-recipe-model}]
+class GeneratedRecipe(Base):
+    __tablename__ = "generated_recipes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    fingerprint = Column(String, nullable=False, index=True)
+    title = Column(String, nullable=False)
+    ingredients = Column(Text, nullable=False)
+    additional_ingredients = Column(Text, nullable=False, default="[]")
+    preferences = Column(Text, nullable=False, default="[]")
+    allergies = Column(Text, nullable=False, default="[]")
+    steps = Column(Text, nullable=False)
+    nutrition = Column(Text, nullable=False)
+    warnings = Column(Text, nullable=False, default="[]")
+    image_url = Column(String, nullable=True)
+    image_path = Column(String, nullable=True)
+    image_cache_key = Column(String, nullable=True, index=True)
+    is_saved = Column(Boolean, nullable=False, default=False, server_default="false")
+    saved_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    owner = relationship("User", back_populates="generated_recipes")
+\end{lstlisting}
+
+This mapping closes the loop between the ER diagram, the relational
+schema, and the implementation. The JSON-serialized text fields are a
+deliberate denormalization tradeoff already justified in
+Section~3.3.4: they simplify storage of variable-length ingredient,
+warning, and step lists without introducing multiple auxiliary tables
+for a thesis-scale application.
+
+\subsubsection{Schema migration history}
+
+Schema evolution is managed through Alembic. The migration
+\texttt{a3f9c2d1e804\_ocr\_image\_fields\_and\_pagination\_indexes.py}
+is a good example because it adds both new columns and composite
+indexes:
+
+\begin{lstlisting}[language=Python,caption={Alembic revision adding image fields and pagination indexes},label={lst:alembic-indexes}]
+def upgrade() -> None:
+    op.add_column("ocr_extractions", sa.Column("image_path", sa.String(), nullable=True))
+    op.add_column("ocr_extractions", sa.Column("image_url", sa.String(), nullable=True))
+
+    with op.batch_alter_table("generated_recipes") as batch_op:
+        batch_op.create_index(
+            "ix_generated_recipes_user_saved_at",
+            ["user_id", "is_saved", "saved_at"],
+        )
+        batch_op.create_index(
+            "ix_generated_recipes_user_created_at",
+            ["user_id", "created_at"],
+        )
+\end{lstlisting}
+
+This revision demonstrates that the relational design did not remain
+static after the ERD was drawn. The database schema evolved together
+with the implementation needs of OCR history and paginated history
+views.
+
+The same evolution also shows where the implementation became more
+precise than the first conceptual sketch. The design stabilized around
+three adjustments in particular. First, recipe history and explicit
+saved recipes were kept in the same table instead of being split into
+two separate persistence models, because save-state is an attribute of a
+generated result rather than a different domain object. Second, OCR
+history gained image-path and image-URL fields only once the frontend
+history view made image recall part of the user-visible workflow.
+Third, pagination support led directly to composite indexes on
+\texttt{generated\_recipes} and \texttt{ocr\_extractions}, so the final
+schema reflects not only domain entities but also the access patterns
+that emerged during implementation.
+
+\subsubsection{Query and indexing implementation}
+
+The composite indexes above are used by the saved-recipes and history
+queries in \texttt{backend/routes/recipes.py}. The saved-recipes query
+is shown below:
+
+\begin{lstlisting}[language=Python,caption={Saved-recipes query using the ownership and save-state fields},label={lst:saved-query}]
+base_query = db.query(GeneratedRecipe).filter(
+    GeneratedRecipe.user_id == current_user.id,
+    GeneratedRecipe.is_saved.is_(True),
+)
+rows = (
+    base_query
+    .order_by(GeneratedRecipe.saved_at.desc(), GeneratedRecipe.created_at.desc())
+    .offset((page - 1) * page_size)
+    .limit(page_size)
+    .all()
+)
+\end{lstlisting}
+
+This query is not only persistence code but also evidence that the
+index strategy described in Chapter~3 is connected to an actual access
+pattern in the system.
+
+The same query can be expressed at SQL level as follows:
+
+\begin{lstlisting}[language=SQL,caption={SQL form of the saved-recipes listing query},label={lst:saved-query-sql}]
+SELECT
+    id,
+    title,
+    ingredients,
+    additional_ingredients,
+    preferences,
+    allergies,
+    steps,
+    nutrition,
+    image_url,
+    image_cache_key,
+    saved_at,
+    created_at
+FROM generated_recipes
+WHERE user_id = :current_user_id
+  AND is_saved = TRUE
+ORDER BY saved_at DESC, created_at DESC
+LIMIT :page_size OFFSET :offset;
+\end{lstlisting}
+
+This query uses the same ownership and save-state conditions that
+appear in the ORM code and benefits directly from the composite index on
+\texttt{(user\_id, is\_saved, saved\_at)}. The ordering also reflects a
+domain choice: once a recipe becomes part of the saved collection, the
+most relevant timestamp is the save action rather than the original
+generation time.
+
+Although the user-facing application mainly executes ownership-scoped
+single-table reads, the same relational model also supports more
+analytical queries when needed. For example, the following aggregation
+query can summarize per-user recipe activity by combining a join,
+conditional aggregation, and descending ranking:
+
+\begin{lstlisting}[language=SQL,caption={Analytical SQL over the implemented recipe-history schema},label={lst:activity-aggregation-sql}]
+SELECT
+    u.email,
+    COUNT(gr.id) AS generated_recipe_count,
+    SUM(CASE WHEN gr.is_saved = TRUE THEN 1 ELSE 0 END) AS saved_recipe_count,
+    MAX(gr.created_at) AS latest_generation_at
+FROM users AS u
+LEFT JOIN generated_recipes AS gr
+    ON gr.user_id = u.id
+GROUP BY u.id, u.email
+ORDER BY generated_recipe_count DESC, latest_generation_at DESC;
+\end{lstlisting}
+
+This query is not part of the current browser workflow, but it is still
+important documentation evidence because it shows that the schema
+supports not only transactional reads and writes but also higher-level
+reporting over the same ownership model.
+
+The retrieval corpus is indexed offline through
+\texttt{backend/scripts/index\_recipes.py}:
+
+\begin{lstlisting}[language=Python,caption={Offline recipe-corpus indexing for ChromaDB},label={lst:index-script}]
+def index_recipe_corpus() -> None:
+    recipes = load_recipe_corpus(corpus_path)
+    collection = get_collection()
+    existing = collection.get(include=[])
+    existing_ids = existing.get("ids", [])
+    if existing_ids:
+        collection.delete(ids=existing_ids)
+
+    for start in range(0, len(recipes), batch_size):
+        batch = recipes[start : start + batch_size]
+        documents = [build_recipe_document(recipe) for recipe in batch]
+        embeddings = create_embeddings(documents)
+        collection.add(
+            ids=[str(recipe["recipe_id"]) for recipe in batch],
+            documents=documents,
+            embeddings=embeddings,
+            metadatas=[build_recipe_metadata(recipe) for recipe in batch],
+        )
+\end{lstlisting}
+
+The indexed recipe corpus is based on a cleaned subset of the Food.com
+dataset obtained from Kaggle and stored locally in
+\texttt{backend/data/recipes\_subset.json}. This indexing script shows
+that the retrieval layer is not abstract or
+purely conceptual. The corpus preparation and embedding workflow are
+implemented as executable code that can rebuild the persistent Chroma
+store used during generation.
+
+\subsection{Known implementation limitations}
+
+Several implementation limitations remain and are important for honest
+evaluation.
+
+\subsubsection{Known bugs and unresolved issues}
+
+The first unresolved issue is that the quality of recipe generation and
+nutrition-label extraction depends partly on upstream AI-provider
+behavior. Even when the local validation and control flow operate
+correctly, the application may still receive weak OCR text, malformed
+model output, or structurally poor generated content from the external
+services it relies on. In such cases, the backend may reject the
+response, return a lower-quality result, or surface warnings instead of
+producing a fully satisfactory output. This is not a control-flow bug in
+the local application logic, but it remains an unresolved reliability
+issue because output quality cannot be guaranteed purely by local code.
+
+A second unresolved issue concerns OCR upload persistence. In
+\texttt{backend/services/ocr\_service.py}, the system attempts to store
+the uploaded image before OCR extraction begins, but a failure during
+that media-write step does not stop the extraction workflow. As a
+result, OCR processing may still succeed and return structured nutrition
+data even when the uploaded image itself was not persisted correctly.
+This behavior keeps the core extraction feature available in the
+presence of non-critical storage errors, but it also means that a saved
+history entry may lack a usable stored-image reference.
+
+A third practical weakness is the limited recovery strategy around
+AI-generated recipe validity. The recipe workflow validates generated
+content against restriction rules and performs one corrective retry when
+the first result violates allergy or dietary constraints. However, if
+both attempts fail, the request is rejected. This keeps the safety model
+strict, but it also means that transient or provider-specific output
+instability can still cause complete request failure even when the input
+itself is valid.
+
+\subsubsection{Technical debt and maintainability concerns}
+
+The default relational database is SQLite, as configured in
+\texttt{backend/config.py}. This is appropriate for a local thesis-scale
+deployment, but it is not designed for larger multi-user or
+high-concurrency scenarios. The same applies to the custom rate limiter
+in \texttt{backend/rate\_limit.py}, which stores counters in process
+memory. Its limits are therefore reset when the backend restarts and are
+not shared across multiple application instances.
+
+Authentication state on the frontend is currently stored in browser
+\texttt{localStorage}, as implemented in
+\texttt{frontend/src/context/AuthContext.jsx}. This keeps the frontend
+logic simple, but it is a weaker session-management approach than using
+refresh tokens, httpOnly cookies, or server-managed session renewal.
+Similarly, account management remains intentionally minimal: the current
+implementation supports signup, login, logout, and profile-default
+updates, but it does not include password reset, email verification, or
+role-based authorization features.
+
+The persistence model also contains an intentional denormalization
+tradeoff. Several structured values, such as recipe ingredients, steps,
+warnings, and OCR nutrition payloads, are stored as serialized text
+rather than being decomposed into separate relational child tables. This
+keeps the schema compact and matches the JSON-shaped API contracts well,
+but it reduces query flexibility and would become harder to maintain if
+the system evolved toward more complex reporting or cross-record
+analytics.
+
+Media handling is likewise optimized for simplicity rather than for a
+strong deployment model. OCR upload images and generated recipe
+thumbnails are stored on the local filesystem under the backend
+workspace. This is sufficient for local development and demonstration,
+but it would need to be replaced by a more robust object-storage
+strategy in a larger deployment.
+
+The thumbnail cache also reflects a pragmatic compromise. In
+\texttt{backend/services/recipe\_image\_service.py}, the cache key is
+derived mainly from normalized ingredient input. This reduces repeated
+image-generation calls and API cost, but it can also cause requests with
+the same base ingredient set to reuse the same thumbnail even when
+preference or allergy context differs.
+
+The application also remains dependent on external AI services for its
+main intelligent features. Recipe generation, embedding creation, OCR
+text structuring, and recipe-image generation all require upstream API
+access and therefore do not currently support a fully offline execution
+mode. This is acceptable for the current thesis-scale deployment model,
+but it defines a clear operational boundary for the implementation.
+
+\subsubsection{Planned but unimplemented improvements}
+
+Several improvements were deliberately left outside the thesis scope.
+The recipe workflow does not yet support editing and re-saving generated
+recipes after the initial result is stored. The system does not yet
+provide editing or deletion for saved recipes or saved OCR history
+entries. The OCR subsystem exposes a provider abstraction, but only the
+Google Vision-based implementation is currently available in production
+form. Likewise, recipe image generation is represented through a
+provider interface, but only the OpenAI-backed path is implemented.
+
+The current application also lacks more advanced administrative and
+analytical functionality. For example, there is no dedicated dashboard
+for aggregate usage statistics, no administrator view over user activity
+patterns, and no richer moderation or review workflow for generated
+content. These omissions do not prevent the core thesis goals from being
+demonstrated, but they remain natural extension points.
+
+\subsubsection{Future development directions}
+
+Future work should first strengthen operational robustness. The most
+important infrastructure-oriented improvements would be replacing the
+in-memory rate limiter with a shared backing store, migrating from
+SQLite to a stronger multi-user database when needed, and making media
+persistence more explicit and failure-aware.
+
+On the AI side, future development should broaden provider support,
+improve evaluation coverage, and strengthen output control. Useful next
+steps would include adding alternative OCR backends, expanding the
+recipe and OCR evaluation datasets, refining retrieval and prompt
+construction, and introducing more flexible post-generation revision
+controls for users.
+
+From a product perspective, the most valuable user-facing improvements
+would be edit/delete support for stored content, stronger account
+management, and clearer lifecycle handling for generated artifacts and
+saved OCR media. These directions follow directly from the current
+implementation and would extend the project without requiring a
+fundamental redesign.
+
+\subsection{Chapter Summary}
+
+Chapter~3 presented the architecture and design rationale of the
+project; this chapter showed their realization in code. The FastAPI
+bootstrap, route modules, service classes, and React context/page
+structure demonstrate that the UML and architectural diagrams reflect
+the actual repository. The persistence layer, Alembic revisions, and
+Chroma indexing script likewise show that the database and retrieval
+designs were implemented as executable program components rather than
+remaining design-only artifacts. This concrete implementation basis is
+used in the next chapter to evaluate functional behavior, robustness,
+and output quality.

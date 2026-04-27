@@ -1,0 +1,119 @@
+\documentclass[
+	%parspace, % Add vertical space between paragraphs
+	%noindent, % No indentation of first lines in each paragraph
+	%nohyp, % No hyphenation of words
+	%twoside, % Double sided format
+	%draft, % Quicker draft compilation without rendering images
+	%final, % Set final to hide todos
+]{elteikthesis}[2024/04/26]
+
+% The minted package is also supported for source highlighting
+% See elteikthesis_minted.tex for example
+%\usepackage[newfloat]{minted}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc,fit,positioning,shapes.geometric,shapes.multipart}
+\usepackage{tabularx}
+
+% Document's metadata
+\title{ AI Cookbook with Ingredient-Based Search} % title
+\date{2026} % year of defense
+
+% Author's metadata
+\author{Ulkar Chobanova}
+\degree{Computer Science BSc}
+
+% Superivsor(s)' metadata
+\supervisor{Gregory Reynolds Morse} % internal supervisor's name
+\affiliation{Lecturer} % internal supervisor's affiliation
+%\extsupervisor{Jane Doe} % external supervisor's name
+%\extaffiliation{Senior Developer} % external supervisor's affiliation
+
+% University's metadata
+\university{Eötvös Loránd University} % university's name
+\faculty{Faculty of Informatics} % faculty's name
+\department{Dept. of Programming Languages and Compilers} % department's name
+\city{Budapest} % city
+\logo{elte_cimer_szines} % logo
+
+% Add bibliography file
+\addbibresource{elteikthesis.bib}
+
+% The document
+\begin{document}
+
+% Set document language
+%\documentlang{hungarian}
+\documentlang{english}
+
+% List of todos (not in the final document)
+%\listoftodos[\todolabel]
+
+% Title page (mandatory)
+\maketitle
+% Topic declaration page (mandatory) - can also be attached instead
+%\includepdf{topicdeclaration.pdf}
+
+\includepdf[pages=1]{ApprovedThesisForm.pdf}
+
+% Acknowledgements (optional)
+\chapter*{\acklabel}
+\addcontentsline{toc}{chapter}{\acklabel}
+I would like to express my sincere gratitude to my supervisor,
+Gregory Reynolds Morse, for his guidance, feedback, and continuous
+support throughout the development of this thesis. I am also deeply
+grateful to my family for their patience, encouragement, and constant
+support during my studies and during the preparation of this work.
+\cleardoublepage
+
+% Table of contents (mandatory)
+\tableofcontents
+\cleardoublepage
+
+% Main content
+\input{samples_en/intro.tex}
+\cleardoublepage
+
+\input{samples_en/user.tex}
+\cleardoublepage
+
+\input{samples_en/impl.tex}
+\cleardoublepage
+
+\input{samples_en/implementation.tex}
+\cleardoublepage
+
+\input{samples_en/testing.tex}
+\cleardoublepage
+
+\input{samples_en/sum.tex}
+\cleardoublepage
+
+% Bibliography (mandatory)
+\phantomsection
+\addcontentsline{toc}{chapter}{\biblabel}
+\nocite{http2022rfc9110,json2017rfc8259,jwt2015rfc7519,foodcom2019kaggle,openai2026platform,openai2026api,openai2026images,openai2026embeddings,google2026vision,fastapi2026docs,pydantic2026docs,pydanticsettings2026docs,sqlalchemy2026docs,alembic2026docs,chromadb2026docs,sqlite2026docs,uvicorn2026docs,httpx2026docs,pillow2026docs,pythondotenv2026docs,pythonjose2026docs,passlib2026docs,argon22026docs,pytest2026docs,coveragepy2026docs,react2026docs,reactrouter2026docs,vite2026docs,vitest2026docs,testinglibraryreact2026docs,testinglibraryjestdom2026docs,jsdom2026docs,postman2026docs,python2026docs,node2026docs,npm2026docs,git2026docs,vscode2026docs,chrome2026docs}
+\printbibliography[title=\biblabel]
+\cleardoublepage
+
+% List of figures (optional) - useful over 3-5 figures
+\phantomsection
+\addcontentsline{toc}{chapter}{\lstfigurelabel}
+\listoffigures
+\cleardoublepage
+
+% List of tables (optional) - useful over 3-5 tables
+\phantomsection
+\addcontentsline{toc}{chapter}{\lsttablelabel}
+\listoftables
+\cleardoublepage
+
+% List of codes (optional) - useful over 3-5 code samples
+\phantomsection
+\addcontentsline{toc}{chapter}{\lstcodelabel}
+\lstlistoflistings
+\cleardoublepage
+
+% List of symbols (optional)
+%\printnomenclature
+
+\end{document}
