@@ -93,6 +93,10 @@ For platform-specific Python installation, interpreter usage, and
 environment-management details, the official \emph{Python Setup and
 Usage} guide can be consulted \cite{python2026setup}.
 
+For platform-specific Node.js and npm installation details, the
+official Node.js installation guide can be consulted
+\cite{node2026setup}.
+
 \subsubsection{External service requirements}
 
 In addition to the local software stack, the AI-supported features
@@ -615,6 +619,11 @@ important because they can be reused later on the recipe-generation
 page. If the user leaves the optional preference and allergy fields
 empty during recipe generation, the application automatically falls
 back to the saved profile values.
+
+This makes the account page an important bridge between authentication
+and later personalized recipe-generation behavior, because the values
+stored here directly affect future requests when the user relies on
+saved defaults.
 
 The key visible parts of this screen are the tab selector, the
 credential form, and, after login, the profile summary and update
