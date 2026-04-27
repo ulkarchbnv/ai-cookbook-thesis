@@ -1,0 +1,4 @@
+case_id,image_path,ocr_success,structured_output_success,product_name_expected,product_name_observed,product_name_correct,serving_size_expected,serving_size_observed,serving_size_correct,calories_expected,calories_observed,calories_correct,protein_expected,protein_observed,protein_correct,carbs_expected,carbs_observed,carbs_correct,fat_expected,fat_observed,fat_correct,sugar_expected,sugar_observed,sugar_correct,sodium_expected,sodium_observed,sodium_correct,fiber_expected,fiber_observed,fiber_correct,correct_field_count,notes
+O-01,"C:\Users\Admin\Downloads\nutrition-facts.jpg",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+O-02,"C:\Users\Admin\Downloads\unnamed.jpg",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+O-03,"C:\Users\Admin\Downloads\WhatsApp Image 2026-04-14 at 13.56.17.jpeg",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,

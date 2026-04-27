@@ -1,0 +1,75 @@
+@startuml
+' Entity-Relationship Diagram — AI Cookbook System
+' Database: SQLite (ai_cookbook.db)
+
+skinparam classAttributeIconSize 0
+skinparam backgroundColor #FFFFFF
+skinparam classBackgroundColor #FFFFFF
+skinparam classHeaderBackgroundColor #FFFFFF
+skinparam packageBackgroundColor #FFFFFF
+skinparam classBorderColor #000000
+skinparam classArrowColor #000000
+skinparam packageBorderColor #000000
+skinparam fontColor #000000
+skinparam classFontColor #000000
+skinparam classAttributeFontColor #000000
+skinparam packageFontColor #000000
+skinparam classFontSize 13
+skinparam classAttributeFontSize 12
+skinparam packageFontSize 13
+skinparam classFontStyle bold
+skinparam nodesep 80
+skinparam ranksep 100
+skinparam padding 10
+
+hide circle
+top to bottom direction
+
+entity User {
+    * id : INTEGER <<PK>>
+    --
+    * email : VARCHAR <<UNIQUE, NOT NULL>>
+    * password : VARCHAR <<NOT NULL>>
+    * preferences : TEXT <<NOT NULL, DEFAULT '[]'>>
+    * allergies : TEXT <<NOT NULL, DEFAULT '[]'>>
+    created_at : DATETIME(tz) <<DEFAULT now()>>
+}
+
+entity GeneratedRecipe {
+    * id : INTEGER <<PK>>
+    --
+    * fingerprint : VARCHAR <<NOT NULL>>
+    * title : VARCHAR <<NOT NULL>>
+    * ingredients : TEXT <<NOT NULL>>
+    * additional_ingredients : TEXT <<NOT NULL, DEFAULT '[]'>>
+    * preferences : TEXT <<NOT NULL, DEFAULT '[]'>>
+    * allergies : TEXT <<NOT NULL, DEFAULT '[]'>>
+    * steps : TEXT <<NOT NULL>>
+    * nutrition : TEXT <<NOT NULL>>
+    * warnings : TEXT <<NOT NULL, DEFAULT '[]'>>
+    image_url : VARCHAR
+    image_path : VARCHAR
+    image_cache_key : VARCHAR
+    image_prompt : TEXT
+    * is_saved : BOOLEAN <<NOT NULL, DEFAULT false>>
+    saved_at : DATETIME(tz)
+    created_at : DATETIME(tz) <<DEFAULT now()>>
+    user_id : INTEGER <<FK>>
+}
+
+entity OcrExtraction {
+    * id : INTEGER <<PK>>
+    --
+    * source_filename : VARCHAR <<NOT NULL>>
+    * raw_text : TEXT <<NOT NULL>>
+    * structured_nutrition : TEXT <<NOT NULL>>
+    image_path : VARCHAR
+    image_url : VARCHAR
+    created_at : DATETIME(tz) <<DEFAULT now()>>
+    * user_id : INTEGER <<FK, NOT NULL>>
+}
+
+User ||--o{ GeneratedRecipe : "generates"
+User ||--o{ OcrExtraction : "performs"
+
+@enduml

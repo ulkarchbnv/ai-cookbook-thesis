@@ -1,0 +1,89 @@
+@startuml
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+skinparam backgroundColor white
+skinparam usecaseBorderColor black
+skinparam usecaseBackgroundColor white
+skinparam actorBorderColor black
+skinparam actorBackgroundColor white
+skinparam arrowColor black
+skinparam packageBorderColor black
+skinparam packageFontStyle bold
+skinparam defaultFontSize 13
+skinparam dpi 200
+skinparam padding 3
+
+left to right direction
+
+:Guest User: as GU
+:Authenticated User: as AU
+
+rectangle "AI Cookbook System" {
+
+  package "Guest Access" {
+    (Register Account) as UC_Register
+    (Log In) as UC_Login
+    (Generate Recipe) as UC_Generate
+  }
+
+  package "Authenticated Access" {
+    (View Profile) as UC_ViewProfile
+    (Update Profile) as UC_UpdateProfile
+    (Save Recipe) as UC_Save
+    (Browse Saved Recipes) as UC_BrowseSaved
+    (Browse Recipe History) as UC_BrowseHistory
+  }
+
+  package "OCR & Nutrition" {
+    (Extract Nutrition Label) as UC_Extract
+    (Save OCR Result) as UC_SaveOCR
+    (Browse OCR History) as UC_BrowseOCR
+  }
+
+  package "Recipe Pipeline" {
+    (Generate Recipe Thumbnail) as UC_Thumbnail
+    (Retrieve Similar Recipes) as UC_RetrieveRAG
+  }
+}
+
+rectangle "Admin & Debug" as AdminBlock {
+  (Debug RAG Query) as UC_DebugRAG
+  (View Collection Stats) as UC_CollectionStats
+  (Check OCR Status) as UC_OCRStatus
+  (Check System Health) as UC_Health
+}
+
+:OpenAI API: as OpenAI <<external>>
+:Google Vision API: as GVision <<external>>
+
+GU --> UC_Register
+GU --> UC_Login
+GU --> UC_Generate
+GU --> UC_Extract
+
+AU --> UC_Register
+AU --> UC_Login
+AU --> UC_Generate
+AU --> UC_Extract
+AU --> UC_ViewProfile
+AU --> UC_UpdateProfile
+AU --> UC_Save
+AU --> UC_BrowseSaved
+AU --> UC_BrowseHistory
+AU --> UC_SaveOCR
+AU --> UC_BrowseOCR
+AU --> UC_DebugRAG
+AU --> UC_CollectionStats
+AU --> UC_OCRStatus
+AU --> UC_Health
+
+UC_Generate ..> UC_Thumbnail : <<include>>
+UC_Generate ..> UC_RetrieveRAG : <<include>>
+
+UC_Generate --> OpenAI
+UC_Thumbnail --> OpenAI
+UC_RetrieveRAG --> OpenAI
+UC_DebugRAG --> OpenAI
+OpenAI -[hidden]down- GVision
+UC_Extract --> GVision : OCR
+@enduml

@@ -1,0 +1,94 @@
+@startuml
+' Relational Schema Diagram — AI Cookbook System
+' Database: SQLite (ai_cookbook.db)
+
+skinparam classAttributeIconSize 0
+skinparam backgroundColor #FFFFFF
+skinparam classBackgroundColor #FFFFFF
+skinparam classHeaderBackgroundColor #FFFFFF
+skinparam packageBackgroundColor #FFFFFF
+skinparam classBorderColor #000000
+skinparam classArrowColor #000000
+skinparam packageBorderColor #000000
+skinparam fontColor #000000
+skinparam classFontColor #000000
+skinparam classAttributeFontColor #000000
+skinparam packageFontColor #000000
+skinparam classFontSize 13
+skinparam classAttributeFontSize 12
+skinparam packageFontSize 13
+skinparam classFontStyle bold
+skinparam nodesep 80
+skinparam ranksep 100
+skinparam padding 10
+skinparam noteBackgroundColor #FFFFFF
+skinparam noteBorderColor #000000
+
+hide circle
+top to bottom direction
+
+class users <<Table>> {
+    <<PK>> INTEGER id
+    ..
+    VARCHAR email <<UNIQUE, NOT NULL>>
+    VARCHAR password <<NOT NULL>>
+    TEXT preferences <<NOT NULL, DEFAULT '[]'>>
+    TEXT allergies <<NOT NULL, DEFAULT '[]'>>
+    DATETIME(tz) created_at <<DEFAULT now()>>
+    ..
+    **Indexes:**
+    ix_users_id (id)
+    ix_users_email (email, UNIQUE)
+}
+
+class generated_recipes <<Table>> {
+    <<PK>> INTEGER id
+    ..
+    VARCHAR fingerprint <<NOT NULL>>
+    VARCHAR title <<NOT NULL>>
+    TEXT ingredients <<NOT NULL>>
+    TEXT additional_ingredients <<NOT NULL, DEFAULT '[]'>>
+    TEXT preferences <<NOT NULL, DEFAULT '[]'>>
+    TEXT allergies <<NOT NULL, DEFAULT '[]'>>
+    TEXT steps <<NOT NULL>>
+    TEXT nutrition <<NOT NULL>>
+    TEXT warnings <<NOT NULL, DEFAULT '[]'>>
+    VARCHAR image_url
+    VARCHAR image_path
+    VARCHAR image_cache_key
+    TEXT image_prompt
+    BOOLEAN is_saved <<NOT NULL, DEFAULT false>>
+    DATETIME(tz) saved_at
+    DATETIME(tz) created_at <<DEFAULT now()>>
+    <<FK>> INTEGER user_id -> users.id
+    ..
+    **Indexes:**
+    ix_generated_recipes_id (id)
+    ix_generated_recipes_fingerprint (fingerprint)
+    ix_generated_recipes_image_cache_key (image_cache_key)
+    ix_generated_recipes_user_saved_at (user_id, is_saved, saved_at)
+    ix_generated_recipes_user_created_at (user_id, created_at)
+}
+
+class ocr_extractions <<Table>> {
+    <<PK>> INTEGER id
+    ..
+    VARCHAR source_filename <<NOT NULL>>
+    TEXT raw_text <<NOT NULL>>
+    TEXT structured_nutrition <<NOT NULL>>
+    VARCHAR image_path
+    VARCHAR image_url
+    DATETIME(tz) created_at <<DEFAULT now()>>
+    <<FK>> INTEGER user_id <<NOT NULL>> -> users.id
+    ..
+    **Indexes:**
+    ix_ocr_extractions_id (id)
+    ix_ocr_extractions_user_created_at (user_id, created_at)
+}
+
+users "1" --o "0..N" generated_recipes : "user_id"
+users "1" --o "1..N" ocr_extractions : "user_id"
+
+note "All tables satisfy BCNF:\n- No partial dependencies (all PKs are single-column surrogate keys)\n- No transitive dependencies among non-key attributes\n- All determinants are candidate keys\n\nIntentional denormalization:\n- preferences, allergies, ingredients, warnings, steps,\n  nutrition, and structured_nutrition store JSON-serialized\n  TEXT to avoid excessive join complexity for\n  variable-length lists returned as atomic API payloads." as NormNote
+
+@enduml

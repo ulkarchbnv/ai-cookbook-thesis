@@ -1,0 +1,84 @@
+@startuml
+skinparam backgroundColor white
+skinparam sequenceArrowColor black
+skinparam sequenceLifeLineBorderColor black
+skinparam sequenceParticipantBackgroundColor white
+skinparam sequenceParticipantBorderColor black
+skinparam sequenceGroupBackgroundColor white
+skinparam sequenceGroupBorderColor black
+skinparam noteBorderColor black
+skinparam noteBackgroundColor white
+skinparam sequenceBoxBackgroundColor white
+skinparam sequenceBoxBorderColor black
+skinparam participantPadding 40
+skinparam sequenceMessageAlign center
+skinparam defaultFontSize 13
+skinparam dpi 200
+
+autonumber
+
+actor "User" as User
+participant "Frontend" as Frontend
+participant "RecipeAPI" as API
+participant "LLMService" as LLM
+participant "RAGService" as RAG
+participant "OpenAI API" as OpenAI
+database "Database" as DB
+
+User -> Frontend : ingredients, preferences, allergies
+activate Frontend
+
+Frontend -> API : POST /generate-recipe\n[Authorization: Bearer token]
+activate API
+
+API -> API : resolve optional JWT\n→ User | None
+
+API -> LLM : generate_structured_recipe(request)
+activate LLM
+
+LLM -> LLM : validate ingredients\nagainst allergies & preferences\n→ safe_ingredients
+
+alt safe_ingredients is empty
+    LLM --> API : HTTPException(400)
+else safe_ingredients available
+
+    LLM -> RAG : retrieve_recipe_context(safe_request)
+    activate RAG
+    RAG -> OpenAI : embeddings.create(query_text)
+    activate OpenAI
+    OpenAI --> RAG : query embedding
+    deactivate OpenAI
+    RAG -> RAG : ChromaDB vector search\nfilter & rank candidates
+    RAG --> LLM : ranked recipe context
+    deactivate RAG
+
+    loop up to 2 attempts
+        LLM -> OpenAI : chat.completions.create(\nmodel, prompt, temperature=0.7)
+        activate OpenAI
+        OpenAI --> LLM : recipe JSON
+        deactivate OpenAI
+        LLM -> LLM : validate dietary restrictions
+        alt violations found
+            LLM -> LLM : append correction prompt
+        end
+    end
+
+    LLM --> API : RecipeResponse
+    deactivate LLM
+
+    alt current_user is not None [authenticated]
+        API -> DB : persist GeneratedRecipe
+        activate DB
+        DB --> API : generated_recipe_id
+        deactivate DB
+    else current_user is None [guest]
+        API -> API : skip persistence
+    end
+
+    API --> Frontend : RecipeResponse JSON
+    deactivate API
+
+    Frontend --> User : render recipe
+    deactivate Frontend
+end
+@enduml

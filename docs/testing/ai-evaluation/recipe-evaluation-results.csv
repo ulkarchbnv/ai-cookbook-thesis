@@ -1,0 +1,13 @@
+case_id,ingredients,preferences,allergies,response_status,structure_valid,allergy_safe,preference_satisfied,ingredient_coverage_score,additional_ingredient_count,practical_quality_score,warnings_present,error_present,notes
+R-01,"tomato, basil, pasta",vegetarian,peanut,,,,,,,,,
+R-02,"egg, bread, cheese",,, ,,,,,,,,
+R-03,"tofu, mushroom, rice, soy sauce",vegan,, ,,,,,,,,
+R-04,"chicken, rice, peanut butter",,peanut,,,,,,,,,
+R-05,"chicken, tomato, onion",vegetarian,, ,,,,,,,,
+R-06,"beef, onion, tomato, rice",halal,, ,,,,,,,,
+R-07,"oats, banana, milk",,milk,,,,,,,,,
+R-08,"oats, banana, strawberry",vegan,"tree nut",,,,,,,,,
+R-09,"shrimp, garlic, pasta",,shellfish,,,,,,,,,
+R-10,"cucumber, tomato, lettuce, lemon",vegetarian,, ,,,,,,,,
+R-11,"milk, cheese, butter",vegan,milk,,,,,,,,,
+R-12,"rice, carrot, onion",,, ,,,,,,,,

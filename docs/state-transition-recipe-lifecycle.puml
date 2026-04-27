@@ -1,0 +1,120 @@
+@startuml
+' State Transition Diagram — Recipe Request Lifecycle
+' Section 3.3 Data Design — BSc Thesis (ELTE)
+
+skinparam backgroundColor #FFFFFF
+skinparam stateBackgroundColor #FFFFFF
+skinparam stateBorderColor #000000
+skinparam stateArrowColor #000000
+skinparam stateFontColor #000000
+skinparam stateFontSize 12
+skinparam stateFontStyle bold
+skinparam noteBackgroundColor #FFFFFF
+skinparam noteBorderColor #000000
+skinparam arrowColor #000000
+skinparam defaultFontColor #000000
+skinparam defaultFontSize 10
+skinparam padding 4
+skinparam nodesep 18
+skinparam ranksep 20
+skinparam dpi 200
+
+[*] --> Received : POST /generate-recipe
+
+state "Received" as Received
+Received : RecipeRequest with ingredients[],
+Received : preferences[], allergies[]
+
+Received --> ValidatingInput : Pydantic validators
+
+state "Validating Input" as ValidatingInput
+ValidatingInput : validate_string_list()
+ValidatingInput : ingredients: 1..25, ≤80 chars each
+
+ValidatingInput --> FilteringIngredients : [input valid]
+ValidatingInput --> Failed : [constraint violated] / HTTP 422
+
+state "Filtering Ingredients" as FilteringIngredients
+FilteringIngredients : find_conflicting_ingredients()
+FilteringIngredients : find_preference_conflicting_ingredients()
+FilteringIngredients : _remove_conflicting_ingredients()
+
+FilteringIngredients --> RetrievingContext : [safe_ingredients non-empty]
+FilteringIngredients --> Failed : [all ingredients conflict] / HTTP 400
+
+state "Retrieving Context" as RetrievingContext
+RetrievingContext : create_embeddings() → OpenAI
+RetrievingContext : collection.query() → ChromaDB
+RetrievingContext : filter + rank candidates
+
+RetrievingContext --> ConstructingPrompt : top-k context returned
+RetrievingContext --> Failed : [embedding error] / HTTP 502
+
+state "Constructing Prompt" as ConstructingPrompt
+ConstructingPrompt : _build_recipe_prompt()
+ConstructingPrompt : inject context, restrictions
+
+ConstructingPrompt --> GenCycle : prompt assembled
+
+state "LLM Generation Cycle" as GenCycle {
+    [*] --> CallingLLM
+
+    state "Calling LLM" as CallingLLM
+    CallingLLM : chat.completions.create()
+    CallingLLM : model: gpt-4.1-mini, temp: 0.7
+
+    CallingLLM --> ValidatingOutput : recipe_json parsed
+
+    state "Validating Output" as ValidatingOutput
+    ValidatingOutput : _find_output_restriction_violations()
+    ValidatingOutput : scan title + ingredients
+
+    ValidatingOutput --> DetectingDrift : [no violations]
+    ValidatingOutput --> RetryingCorrection : [violations, attempt < 2]
+
+    state "Retrying With Correction" as RetryingCorrection
+    RetryingCorrection : append violation_note
+    RetryingCorrection : correction prompt
+
+    RetryingCorrection --> CallingLLM : retry
+
+    state "Detecting Drift" as DetectingDrift
+    DetectingDrift : _find_ingredient_drift()
+    DetectingDrift : → additional_ingredients[]
+
+    DetectingDrift --> [*] : RecipeResponse validated
+}
+
+ValidatingOutput --> Failed : [violations, attempt ≥ 2] / HTTP 502
+CallingLLM --> Failed : [JSON parse / API error] / HTTP 502
+
+GenCycle --> GeneratingImage : RecipeResponse validated
+
+state "Generating Image" as GeneratingImage
+GeneratingImage : build_recipe_image_prompt()
+GeneratingImage : cache check → OpenAI images.generate()
+GeneratingImage : save PNG to recipe_thumbnails/
+
+GeneratingImage --> PersistingResult : image metadata attached
+GeneratingImage --> PersistingResult : [image failed] / warning appended
+
+state "Persisting Result" as PersistingResult
+PersistingResult : [authenticated]: insert GeneratedRecipe → SQLite
+PersistingResult : [guest]: skip persistence
+
+PersistingResult --> Complete : RecipeResponse assembled
+
+state "Complete" as Complete
+Complete : return RecipeResponse
+Complete : {title, ingredients[], steps[],
+Complete : nutrition_estimate{}, image_url, warnings[]}
+
+Complete --> [*]
+
+state "Failed" as Failed
+Failed : return HTTPException
+Failed : (400 / 422 / 502)
+
+Failed --> [*]
+
+@enduml

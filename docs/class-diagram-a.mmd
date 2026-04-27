@@ -1,0 +1,267 @@
+classDiagram
+    direction TB
+
+    %% ════════════════════════════════════════════════════════
+    %% Diagram A — Core Domain, Services, and Routing
+    %% ════════════════════════════════════════════════════════
+
+    %% ── Application Composition (main.py) ─────────
+
+    namespace ApplicationLayer {
+        class App {
+            <<module>>
+            +FastAPI app
+            +dict read_root()
+        }
+    }
+
+    %% ── Presentation Layer (routes/) ──────────────
+
+    namespace PresentationLayer {
+        class AuthRouter {
+            <<module>>
+            +APIRouter router
+            +UserResponse signup(UserCreate user, Session db)
+            +TokenResponse login(UserLogin user, Session db)
+            +TokenResponse login_for_access_token(OAuth2PasswordRequestForm form, Session db)
+            +UserResponse read_current_user(User current_user)
+            +UserResponse update_current_user_profile(UserProfileUpdate profile, Session db, User current_user)
+        }
+        class RecipeRouter {
+            <<module>>
+            +APIRouter router
+            +RecipeResponse generate_recipe(RecipeRequest request, Session db, User? current_user)
+            +SavedRecipeResponse save_recipe(SavedRecipeCreate recipe, Session db, User current_user)
+            +PaginatedResponse list_saved_recipes(int page, int page_size, Session db, User current_user)
+            +PaginatedResponse list_generated_recipe_history(int page, int page_size, Session db, User current_user)
+        }
+        class OcrRouter {
+            <<module>>
+            +APIRouter router
+            +dict get_ocr_status()
+            +OcrExtractionResponse extract_nutrition(UploadFile file)
+            +SavedOcrExtractionResponse save_ocr_extraction(SavedOcrExtractionCreate data, Session db, User current_user)
+            +PaginatedResponse list_saved_ocr_extractions(int page, int page_size, Session db, User current_user)
+        }
+        class RagDebugRouter {
+            <<module>>
+            +APIRouter router
+            +RagDebugResponse rag_debug(RecipeRequest request)
+            +dict rag_collection_stats()
+        }
+    }
+
+    %% ── Service Layer (services/) ─────────────────
+
+    namespace ServiceLayer {
+        class LlmService {
+            <<module>>
+            +RecipeResponse generate_structured_recipe(RecipeRequest request)
+            -str _build_recipe_prompt(RecipeRequest request, str context_block)
+            -list~str~ _find_ingredient_drift(dict recipe_json, list~str~ allowed)
+            -list~str~ _find_output_restriction_violations(dict recipe_json, dict restrictions)
+        }
+        class OcrService {
+            <<module>>
+            +OcrExtractionResponse extract_nutrition_label(UploadFile file)
+            -NutritionLabelData _structure_nutrition_text(str raw_text)
+            -dict _save_ocr_upload(bytes file_bytes, str original_filename)
+            -str _sanitize_ocr_text(str raw_text)
+        }
+        class EmbeddingService {
+            <<module>>
+            +list create_embeddings(list~str~ texts)
+        }
+        class RagService {
+            <<module>>
+            +dict ALLERGY_ALIASES
+            +dict PREFERENCE_CONFLICT_KEYWORDS
+            +str build_retrieval_query(RecipeRequest request)
+            +list~str~ find_conflicting_ingredients(list~str~ ingredients, list~str~ allergies)
+            +dict find_preference_conflicting_ingredients(list~str~ ingredients, list~str~ preferences)
+            +dict get_generation_restrictions(list~str~ allergies, list~str~ preferences)
+            +dict get_preference_conflict_keywords(list~str~ preferences)
+            +list~dict~ retrieve_recipe_context(RecipeRequest request)
+        }
+        class RecipeImageService {
+            <<module>>
+            +str build_recipe_image_cache_key(str title, list~str~ ingredients, list~str~ preferences, list~str~ allergies)
+            +str build_recipe_image_prompt(str title, list~str~ ingredients, list~str~ preferences, list~str~ allergies)
+            +dict ensure_recipe_thumbnail(str title, list~str~ ingredients, list~str~ preferences, list~str~ allergies, list~str~? cache_ingredients)
+        }
+        class VectorStoreService {
+            <<module>>
+            +Collection get_collection()
+            +str build_recipe_document(dict recipe)
+            +dict build_recipe_metadata(dict recipe)
+        }
+    }
+
+    %% ── Provider Layer (services/) ────────────────
+
+    namespace ProviderLayer {
+        class OcrProvider {
+            <<abstract>>
+            +str extract_text(bytes image_bytes)*
+        }
+        class GoogleVisionOcrProvider {
+            +str extract_text(bytes image_bytes)
+        }
+        class GoogleVisionHelper {
+            <<module>>
+            +ImageAnnotatorClient get_google_vision_client()
+            +str extract_text_with_google_vision(bytes image_bytes)
+        }
+        class OcrImageProcessing {
+            <<module>>
+            +validate_image_file(UploadFile file)
+            +validate_image_size(bytes file_bytes)
+            +bytes prepare_image_for_ocr(bytes file_bytes)
+        }
+        class RecipeImageProvider {
+            <<abstract>>
+            +bytes generate_png(str prompt)*
+        }
+        class OpenAIRecipeImageProvider {
+            -OpenAI _client
+            +bytes generate_png(str prompt)
+        }
+    }
+
+    %% ── Data Layer — ORM Entities (models.py) ─────
+
+    namespace DataLayer {
+        class Base {
+            <<abstract>>
+        }
+        class User {
+            <<entity>>
+            +Integer id
+            +String email
+            +String password
+            +Text preferences
+            +Text allergies
+            +DateTime created_at
+        }
+        class GeneratedRecipe {
+            <<entity>>
+            +Integer id
+            +String fingerprint
+            +String title
+            +Text ingredients
+            +Text additional_ingredients
+            +Text preferences
+            +Text allergies
+            +Text steps
+            +Text nutrition
+            +Text warnings
+            +String image_url
+            +String image_path
+            +String image_cache_key
+            +Text image_prompt
+            +Boolean is_saved
+            +DateTime saved_at
+            +DateTime created_at
+            +Integer user_id
+        }
+        class OcrExtraction {
+            <<entity>>
+            +Integer id
+            +String source_filename
+            +Text raw_text
+            +Text structured_nutrition
+            +String image_path
+            +String image_url
+            +DateTime created_at
+            +Integer user_id
+        }
+    }
+
+    %% ── Infrastructure (database/security/deps/utils) ──
+
+    namespace InfrastructureLayer {
+        class Database {
+            <<module>>
+            +Engine engine
+            +sessionmaker SessionLocal
+            +declarative_base Base
+            +Generator~Session~ get_db()
+        }
+        class Security {
+            <<module>>
+            +str hash_password(str password)
+            +bool verify_password(str plain_password, str hashed_password)
+            +str create_access_token(dict data, int expires_minutes)
+        }
+        class Dependencies {
+            <<module>>
+            +User get_current_user(str token, Session db)
+            +User? get_optional_current_user(str? token, Session db)
+        }
+        class Utils {
+            <<module>>
+            +Any load_serialized_value(str raw_value, Any fallback)
+            +list~str~ load_serialized_list(str raw_value)
+            +str build_recipe_fingerprint(str title, list~str~ ingredients, list~str~ preferences, list~str~ allergies, list~str~ steps)
+        }
+    }
+
+    %% ═══════════════════════════════════════════════
+    %%  RELATIONSHIPS
+    %% ═══════════════════════════════════════════════
+
+    %% ── Inheritance ───────────────────────────────
+
+    User --|> Base : extends
+    GeneratedRecipe --|> Base : extends
+    OcrExtraction --|> Base : extends
+    GoogleVisionOcrProvider --|> OcrProvider : extends
+    OpenAIRecipeImageProvider --|> RecipeImageProvider : extends
+
+    %% ── Composition ──────────────────────────────
+
+    User "1" *-- "0..*" GeneratedRecipe : owns
+    User "1" *-- "0..*" OcrExtraction : owns
+
+    %% ── Dependency: App → Routers ────────────────
+
+    App ..> AuthRouter : includes router
+    App ..> RecipeRouter : includes router
+    App ..> OcrRouter : includes router
+    App ..> RagDebugRouter : includes router
+
+    %% ── Dependency: Routes → Services ────────────
+
+    RecipeRouter ..> LlmService : generates recipes
+    RecipeRouter ..> RecipeImageService : creates thumbnails
+    OcrRouter ..> OcrService : extracts nutrition
+    RagDebugRouter ..> RagService : retrieves context
+    RagDebugRouter ..> EmbeddingService : creates embeddings
+    RagDebugRouter ..> VectorStoreService : queries collection
+
+    %% ── Dependency: Routes → Infrastructure ──────
+
+    AuthRouter ..> Security : hashes and verifies
+    AuthRouter ..> Dependencies : authenticates user
+    RecipeRouter ..> Dependencies : authenticates user
+    OcrRouter ..> Dependencies : authenticates user
+
+    %% ── Dependency: Service → Service ────────────
+
+    LlmService ..> RagService : retrieves context
+    RagService ..> EmbeddingService : creates embeddings
+    RagService ..> VectorStoreService : queries collection
+
+    %% ── Dependency: Service → Provider ───────────
+
+    OcrService ..> OcrProvider : obtains provider
+    OcrService ..> OcrImageProcessing : preprocesses image
+    RecipeImageService ..> RecipeImageProvider : obtains provider
+
+    %% ── Dependency: Provider internals ───────────
+
+    GoogleVisionOcrProvider ..> GoogleVisionHelper : delegates OCR
+
+    %% ── Dependency: Infrastructure internals ─────
+
+    Dependencies ..> Database : obtains session
