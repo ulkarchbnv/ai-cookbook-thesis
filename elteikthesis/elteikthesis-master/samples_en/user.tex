@@ -89,6 +89,10 @@ software requirements, and external service requirements.
 	suitable for development and normal use.
 \end{itemize}
 
+For platform-specific Python installation, interpreter usage, and
+environment-management details, the official \emph{Python Setup and
+Usage} guide can be consulted \cite{python2026setup}.
+
 \subsubsection{External service requirements}
 
 In addition to the local software stack, the AI-supported features
@@ -411,6 +415,11 @@ In the default local configuration, the backend starts on
 terminal displays the Uvicorn server message and begins watching the
 project files for code changes.
 
+If a different host or port is needed, or if the backend must later be
+deployed behind HTTPS with an SSL certificate, these operational details
+should be taken from the official FastAPI deployment guide rather than
+duplicated here \cite{fastapi2026deployment}.
+
 The frontend is started separately from the \texttt{frontend}
 directory:
 
@@ -553,7 +562,8 @@ token on the client side and returns the application to guest mode.
 The main visible areas of the screen are the headline section, the two
 primary action buttons, and the top navigation bar. Together, these
 elements guide the user toward either the recipe-generation or OCR
-workflow and provide access to the rest of the application.
+workflow and provide access to the rest of the application. This layout
+is shown in Figure~\ref{fig:user-home-page}.
 
 \begin{figure}[H]
 	\centering
@@ -568,7 +578,8 @@ The \texttt{/login} page serves both as the authentication page for
 guest users and as the account-management page for authenticated
 users. Before login, the page presents two tabs: \textbf{Login} and
 \textbf{Sign Up}. This allows a new user to create an account without
-leaving the page.
+leaving the page. The guest-facing authentication view is shown in
+Figure~\ref{fig:user-login-page}.
 
 \begin{figure}[H]
 	\centering
@@ -609,7 +620,8 @@ The key visible parts of this screen are the tab selector, the
 credential form, and, after login, the profile summary and update
 form. This page therefore functions both as the entry point for
 authentication and as the place where personalization defaults are
-maintained.
+maintained. The authenticated account-management view is shown in
+Figure~\ref{fig:user-account-page}.
 
 \begin{figure}[H]
 	\centering
@@ -639,7 +651,8 @@ The screen is organized around three main areas: the input form, the
 recipe result card, and the save action shown for authenticated users.
 This makes it possible to move directly from ingredient entry to
 inspection of the returned recipe and, when logged in, to persistence
-of the result.
+of the result. The implemented screen is shown in
+Figure~\ref{fig:user-generate-recipe}.
 
 If the recipe was generated while the user was logged in, the page
 also offers a \textbf{Save Recipe} action. This stores the generated
@@ -670,7 +683,8 @@ persistent storage is disabled.
 The main visible regions on this page are the upload area, the
 extraction result block, and the saved label history shown for
 authenticated users. This page therefore combines immediate OCR usage
-with later review of previously saved extraction results.
+with later review of previously saved extraction results. The screen is
+shown in Figure~\ref{fig:user-ocr-page}.
 
 \begin{figure}[H]
 	\centering
@@ -695,7 +709,8 @@ authenticate first.
 The key visible elements are the list of saved recipe cards, the saved
 date indicator, and the expandable details section. This keeps the
 page focused on compact review first and detailed inspection only when
-requested by the user.
+requested by the user. The page is shown in
+Figure~\ref{fig:user-saved-recipes}.
 
 \begin{figure}[H]
 	\centering
@@ -721,7 +736,8 @@ estimate in full detail.
 The visible structure of the page emphasizes recipe status, creation
 time, and warning information, so that the user can distinguish
 quickly between temporary and explicitly saved outputs before opening
-the full details.
+the full details. The page is shown in
+Figure~\ref{fig:user-recipe-history}.
 
 \begin{figure}[H]
 	\centering

@@ -16,7 +16,19 @@ Pydantic Settings~2.12.5, and Uvicorn~0.41.0. The frontend uses
 React~19.2.0, React Router DOM~7.13.1, and Vite~7.3.1. These exact
 versions are defined in \texttt{backend/requirements.txt} and
 \texttt{frontend/package.json}, which makes the implementation
-reproducible instead of describing only a generic stack.
+reproducible instead of describing only a generic stack. The backend
+technology choices follow the official Python and FastAPI
+documentation \cite{python2026setup,fastapi2026docs}. Persistence and
+schema management follow the SQLAlchemy and Alembic documentation
+\cite{sqlalchemy2026docs,alembic2026docs}. Retrieval and AI-service
+integration follow the ChromaDB, OpenAI, and Google Cloud Vision
+documentation \cite{chromadb2026docs,openai2026platform,google2026vision}.
+Supporting backend components such as image processing, validation, and
+application serving follow the Pillow, Pydantic, Pydantic Settings, and
+Uvicorn documentation
+\cite{pillow2026docs,pydantic2026docs,pydanticsettings2026docs,uvicorn2026docs}.
+The frontend stack follows the React, React Router, and Vite
+documentation \cite{react2026docs,reactrouter2026docs,vite2026docs}.
 
 The development environment was intentionally lightweight and local.
 Source code was edited primarily in Visual Studio Code, while Git was

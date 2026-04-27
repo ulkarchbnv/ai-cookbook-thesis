@@ -139,7 +139,7 @@ Table~\ref{tab:coverage-summary} summarizes the resulting indicators.
 	\centering
 	\small
 	\renewcommand{\arraystretch}{1.2}
-	\begin{tabular}{|p{2.7cm}|p{3.0cm}|p{3.2cm}|p{5.2cm}|}
+	\begin{tabularx}{\textwidth}{|p{2.3cm}|p{2.4cm}|p{2.5cm}|>{\raggedright\arraybackslash}X|}
 		\hline
 		\textbf{Layer} & \textbf{Tool} & \textbf{Metric} & \textbf{Result} \\
 		\hline
@@ -149,7 +149,7 @@ Table~\ref{tab:coverage-summary} summarizes the resulting indicators.
 		\hline
 		Frontend & \texttt{Vitest} V8 coverage & Branch / function coverage & \textbf{55.18\%} branches and \textbf{64.93\%} functions. \\
 		\hline
-		\end{tabular}
+		\end{tabularx}
 	\caption{Coverage indicators measured for the automated test suites}
 	\label{tab:coverage-summary}
 \end{table}
@@ -524,35 +524,35 @@ behavior, the test steps, the expected result, and the observed result.
 	\centering
 	\scriptsize
 	\renewcommand{\arraystretch}{1.2}
-	\begin{tabular}{|p{1.55cm}|p{2.8cm}|p{3.55cm}|p{3.45cm}|p{3.6cm}|}
+	\begin{tabularx}{\textwidth}{|p{2.2cm}|p{2.0cm}|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
 		\hline
 		\textbf{Type} & \textbf{Description} & \textbf{Test Steps} & \textbf{Expected Result} & \textbf{Observed Result} \\
 		\hline
-		UI / Scenario & Login page access & Open the frontend, navigate to the Login page, and observe the visible controls. & Login and sign-up tabs are visible, email and password fields are displayed, and the page loads correctly. & The login page loaded successfully and displayed both authentication modes and the required input fields without rendering failure. \\
+		\makecell[tl]{UI\\Scenario} & Login page access & Open the frontend, navigate to the Login page, and observe the visible controls. & Login and sign-up tabs are visible, email and password fields are displayed, and the page loads correctly. & The login page loaded successfully and displayed both authentication modes and the required input fields without rendering failure. \\
 		\hline
 		Functionality & Successful user registration & Open the Login page, switch to Sign Up, enter a valid new email and password, and submit the form. & The account is created successfully, a success message is shown, and the page returns to login mode. & Registration succeeded with valid credentials and the interface returned to the normal authentication flow. \\
 		\hline
 		Functionality & Successful login and account view & Enter valid user credentials on the Login page, submit the form, and open the Account page. & The user is authenticated successfully and account/profile information is displayed. & The account page displayed the logged-in profile together with the saved preferences and allergies section. \\
 		\hline
-		Functionality / Persistence & Profile default update & Open the Account page, enter dietary preferences and allergies, submit the update form, then refresh or revisit the page. & The profile update succeeds and the new values remain visible after reload. & Updated preference and allergy values remained visible after saving and page revisit, confirming persistence. \\
+		\makecell[tl]{Functionality\\Persistence} & Profile default update & Open the Account page, enter dietary preferences and allergies, submit the update form, then refresh or revisit the page. & The profile update succeeds and the new values remain visible after reload. & Updated preference and allergy values remained visible after saving and page revisit, confirming persistence. \\
 		\hline
-		Functionality / AI workflow & Recipe generation with direct input & Open the Generate page, enter a comma-separated ingredient list, and click Generate Recipe. & A structured recipe is returned with title, ingredients, steps, and nutrition estimate, and the page remains stable. & The page returned a complete recipe card and remained stable during response rendering. \\
+		\makecell[tl]{Functionality\\AI workflow} & Recipe generation with direct input & Open the Generate page, enter a comma-separated ingredient list, and click Generate Recipe. & A structured recipe is returned with title, ingredients, steps, and nutrition estimate, and the page remains stable. & The page returned a complete recipe card and remained stable during response rendering. \\
 		\hline
-		Functionality / Personalization & Recipe generation using saved defaults & Open the Generate page, enter only ingredients, leave preference and allergy fields empty, and generate the recipe. & The stored profile defaults are applied automatically and the generated output reflects those saved constraints. & The generated output reflected the stored personalization settings even though the optional form fields were left blank. \\
+		\makecell[tl]{Functionality\\Personalization} & Recipe generation using saved defaults & Open the Generate page, enter only ingredients, leave preference and allergy fields empty, and generate the recipe. & The stored profile defaults are applied automatically and the generated output reflects those saved constraints. & The generated output reflected the stored personalization settings even though the optional form fields were left blank. \\
 		\hline
-		Integration / Persistence & Save generated recipe & Generate a recipe while logged in, click Save Recipe, then navigate to the Saved page. & The save operation succeeds and the generated recipe appears in the saved recipes list. & The saved recipes page displayed the same recipe after the save action completed. \\
+		\makecell[tl]{Integration\\Persistence} & Save generated recipe & Generate a recipe while logged in, click Save Recipe, then navigate to the Saved page. & The save operation succeeds and the generated recipe appears in the saved recipes list. & The saved recipes page displayed the same recipe after the save action completed. \\
 		\hline
-		Integration / Persistence & Recipe history availability & Generate one or more recipes, open the History page, and inspect the listed entries. & Generated recipes are listed in history, their state is shown, and stored details can be reviewed. & The history page listed the generated entries correctly and allowed their details to be reviewed. \\
+		\makecell[tl]{Integration\\Persistence} & Recipe history availability & Generate one or more recipes, open the History page, and inspect the listed entries. & Generated recipes are listed in history, their state is shown, and stored details can be reviewed. & The history page listed the generated entries correctly and allowed their details to be reviewed. \\
 		\hline
-		Functionality / OCR & OCR extraction with valid nutrition label & Open the Food Labels page, upload a valid nutrition-label image, and submit extraction. & The extraction completes successfully and the page displays both raw OCR text and structured nutrition information. & The OCR workflow returned both readable raw text and the expected nutrition field grid for the uploaded label. \\
+		\makecell[tl]{Functionality\\OCR} & OCR extraction with valid nutrition label & Open the Food Labels page, upload a valid nutrition-label image, and submit extraction. & The extraction completes successfully and the page displays both raw OCR text and structured nutrition information. & The OCR workflow returned both readable raw text and the expected nutrition field grid for the uploaded label. \\
 		\hline
-		Integration / Persistence & Save OCR extraction & Perform a successful OCR extraction while logged in, save the result, and review the saved label history. & The extraction is stored successfully and appears in the saved OCR history section. & The stored OCR result was later visible in the user-scoped OCR history view. \\
+		\makecell[tl]{Integration\\Persistence} & Save OCR extraction & Perform a successful OCR extraction while logged in, save the result, and review the saved label history. & The extraction is stored successfully and appears in the saved OCR history section. & The stored OCR result was later visible in the user-scoped OCR history view. \\
 		\hline
-		Authentication / Security & Protected pages require login & Log out, open the Saved page, then open the History page and observe both responses. & The pages instruct the user to log in and no private saved or historical data is exposed. & Both pages remained inaccessible without authentication and did not expose user-specific content. \\
+		\makecell[tl]{Authentication\\Security} & Protected pages require login & Log out, open the Saved page, then open the History page and observe both responses. & The pages instruct the user to log in and no private saved or historical data is exposed. & Both pages remained inaccessible without authentication and did not expose user-specific content. \\
 		\hline
-		UI / Usability & Expand and collapse saved recipe details & Open the Saved page, expand one saved recipe, then collapse the detail section again. & Steps and nutrition become visible when expanded and are hidden again when collapsed. & The detail section opened and closed correctly while preserving the surrounding page state. \\
+		\makecell[tl]{UI\\Usability} & Expand and collapse saved recipe details & Open the Saved page, expand one saved recipe, then collapse the detail section again. & Steps and nutrition become visible when expanded and are hidden again when collapsed. & The detail section opened and closed correctly while preserving the surrounding page state. \\
 		\hline
-		\end{tabular}
+		\end{tabularx}
 	\caption{Manual test cases executed for the AI Cookbook application}
 	\label{tab:manual-cases-summary}
 \end{table}
@@ -620,7 +620,7 @@ Table~\ref{tab:recipe-ai-metrics}.
 	\centering
 	\scriptsize
 	\renewcommand{\arraystretch}{1.2}
-	\begin{tabular}{|p{6.0cm}|p{3.5cm}|p{5.0cm}|}
+	\begin{tabularx}{\textwidth}{|p{4.2cm}|p{2.6cm}|>{\raggedright\arraybackslash}X|}
 		\hline
 		\textbf{Metric} & \textbf{Value} & \textbf{Interpretation} \\
 		\hline
@@ -640,7 +640,7 @@ Table~\ref{tab:recipe-ai-metrics}.
 		\hline
 		Average practical quality score & 4.4 / 5 & The outputs were usually coherent and usable in practice. \\
 		\hline
-		\end{tabular}
+		\end{tabularx}
 	\caption{Aggregated metrics for recipe-generation AI evaluation}
 	\label{tab:recipe-ai-metrics}
 \end{table}
@@ -723,7 +723,7 @@ screening or classifier step for non-label uploads.
 	\centering
 	\scriptsize
 	\renewcommand{\arraystretch}{1.2}
-	\begin{tabular}{|p{5.7cm}|p{3.0cm}|p{5.8cm}|}
+	\begin{tabularx}{\textwidth}{|p{4.2cm}|p{2.4cm}|>{\raggedright\arraybackslash}X|}
 		\hline
 		\textbf{Metric} & \textbf{Value} & \textbf{Interpretation} \\
 		\hline
@@ -741,7 +741,7 @@ screening or classifier step for non-label uploads.
 		\hline
 		High-quality extraction share (\(\geq 5\) correct fields) & 66.7\% & Two of the three evaluated images produced practically useful structured results. \\
 		\hline
-	\end{tabular}
+	\end{tabularx}
 	\caption{Aggregated metrics for OCR evaluation}
 	\label{tab:ocr-ai-metrics}
 \end{table}
