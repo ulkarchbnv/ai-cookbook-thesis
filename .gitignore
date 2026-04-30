@@ -50,3 +50,6 @@ backend/google-vision
 backend/media/recipe_thumbnails/
 backend/media/ocr_uploads/
 
+
+latex
+elteikthesis
