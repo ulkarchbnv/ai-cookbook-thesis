@@ -1,7 +1,7 @@
 \section{Implementation}
 \label{ch:implementation}
 
-This chapter shows how the design from Chapter~3 appears in the
+This section shows how the design from Section~\ref{sec:design} appears in the
 codebase. It connects the class, sequence, component, and data design
 artifacts to the implemented backend and frontend modules so that the
 design decisions can be checked against the actual source code.
@@ -9,37 +9,31 @@ design decisions can be checked against the actual source code.
 \subsection{Development environment and technology stack}
 
 The project is implemented as a monorepo with separate backend and
-frontend runtimes. The backend uses Python~3 with FastAPI~0.133.1,
-SQLAlchemy~2.0.48, Alembic~1.7.7, ChromaDB~1.5.5, OpenAI~2.26.0,
-Google Cloud Vision~3.11.0, Pillow~12.0.0, Pydantic~2.12.5,
-Pydantic Settings~2.12.5, and Uvicorn~0.41.0. The frontend uses
-React~19.2.0, React Router DOM~7.13.1, and Vite~7.3.1. These exact
-versions are defined in \texttt{backend/requirements.txt} and
-\texttt{frontend/package.json}, which makes the implementation
-reproducible instead of describing only a generic stack. The backend
-technology choices follow the official Python and FastAPI
-documentation \cite{python2026setup,fastapi2026docs}. Persistence and
-schema management follow the SQLAlchemy and Alembic documentation
-\cite{sqlalchemy2026docs,alembic2026docs}. Retrieval and AI-service
-integration follow the ChromaDB, OpenAI, and Google Cloud Vision
-documentation \cite{chromadb2026docs,openai2026platform,google2026vision}.
-Supporting backend components such as image processing, validation, and
-application serving follow the Pillow, Pydantic, Pydantic Settings, and
-Uvicorn documentation
+frontend runtimes. The backend uses Python~3 and FastAPI~0.133.1
+\cite{python2026setup,fastapi2026docs}, SQLAlchemy~2.0.48 and
+Alembic~1.7.7 \cite{sqlalchemy2026docs,alembic2026docs},
+ChromaDB~1.5.5, OpenAI~2.26.0, and Google Cloud Vision~3.11.0
+\cite{chromadb2026docs,openai2026platform,google2026vision}, and
+Pillow~12.0.0, Pydantic~2.12.5, Pydantic Settings~2.12.5, and
+Uvicorn~0.41.0
 \cite{pillow2026docs,pydantic2026docs,pydanticsettings2026docs,uvicorn2026docs}.
-The frontend stack follows the React, React Router, and Vite
-documentation \cite{react2026docs,reactrouter2026docs,vite2026docs}.
+The frontend uses React~19.2.0, React Router DOM~7.13.1, and
+Vite~7.3.1 \cite{react2026docs,reactrouter2026docs,vite2026docs}.
+These exact versions are defined in \texttt{backend/requirements.txt}
+and \texttt{frontend/package.json}, which makes the implementation
+reproducible instead of describing only a generic stack.
 
 The development environment was intentionally lightweight and local.
-Source code was edited primarily in Visual Studio Code, while Git was
-used for version control across both frontend and backend changes. The
-backend runtime was managed through a Python virtual environment and the
-dependency manifest in \texttt{backend/requirements.txt}. The frontend
-runtime was managed through Node.js and the dependency manifests
-\texttt{frontend/package.json} and \texttt{frontend/package-lock.json}.
-Database schema evolution was handled through Alembic migration files,
-and LaTeX source for the thesis itself was maintained in the same
-repository so that code and documentation could evolve together.
+Source code was edited primarily in Visual Studio Code
+\cite{vscode2026docs}, while Git \cite{git2026docs} was used for
+version control across both frontend and backend changes. The backend
+runtime was managed through a Python virtual environment
+and the dependency manifest in
+\texttt{backend/requirements.txt}. The frontend runtime was managed
+through Node.js and npm \cite{node2026docs,npm2026docs} and the
+dependency manifests \texttt{frontend/package.json} and
+\texttt{frontend/package-lock.json}. Database schema evolution was
+handled through Alembic migration files.
 
 The technology choices follow the layered architecture from
 Section~3.2. FastAPI supports thin route modules with built-in request
@@ -141,7 +135,7 @@ implemented architecture.
 	\label{tab:repo-directories}
 \end{table}
 
-This file system mirrors the layered design from Chapter~3. Route
+This file system mirrors the layered design from Section~\ref{sec:design}. Route
 modules act as a thin API boundary, service modules contain business
 logic and provider orchestration, schema classes define validated data
 contracts, and ORM models implement persistence. This is also the point
@@ -189,7 +183,7 @@ This section focuses on the implementation of the main complex features
 promised in the project proposal. The first two are the structured
 recipe-generation workflow and the OCR-based nutrition-label workflow.
 The third, data persistence and backend integration, is covered in
-detail later in Section~4.5 because it spans relational schema design,
+detail later in this section because it spans relational schema design,
 ORM mapping, migration history, and query behavior.
 
 \subsubsection{Application bootstrap and request entry points}
@@ -197,7 +191,8 @@ ORM mapping, migration history, and query behavior.
 The backend entry point is \texttt{backend/main.py}. It does more than
 create a FastAPI object: it prepares the runtime environment, installs
 cross-cutting middleware, mounts media storage, and registers feature
-routers. This directly realizes the component diagram from Figure~3.2.
+routers \cite{fastapi2026docs}. This directly realizes the component
+diagram from Figure~3.2.
 
 \begin{lstlisting}[language=Python,caption={FastAPI bootstrap in \texttt{backend/main.py}},label={lst:main-bootstrap}]
 app = FastAPI(title="AI Cookbook API")
@@ -240,7 +235,8 @@ on.
 \subsubsection{User-specific defaults and authenticated request context}
 
 Authentication is implemented in three modules that work together:
-\texttt{backend/security.py} contains password hashing and JWT helpers,
+\texttt{backend/security.py} contains Argon2-backed password hashing
+and JWT helpers \cite{argon22026docs,pythonjose2026docs,jwt2015rfc7519},
 \texttt{backend/dependencies.py} resolves the current user from the
 token, and \texttt{backend/routes/auth.py} exposes the HTTP endpoints.
 The hashing and verification calls are implemented as follows:
@@ -332,12 +328,13 @@ if not safe_ingredients:
 \end{lstlisting}
 
 This safety-oriented preprocessing is the concrete implementation of the
-restriction logic discussed in Chapter~3. It is also one of the points
+restriction logic discussed in Section~\ref{sec:design}. It is also one of the points
 where the sequence diagram can be verified against real code.
 
 After filtering, the backend retrieves grounded context from the Chroma
-collection. The retrieval call is implemented in
-\texttt{backend/services/rag\_service.py}:
+collection \cite{chromadb2026docs}. The retrieval call is implemented
+in \texttt{backend/services/rag\_service.py}, and the query vector is
+created through the embeddings service \cite{openai2026embeddings}:
 
 \begin{lstlisting}[language=Python,caption={Vector retrieval query in \texttt{backend/services/rag\_service.py}},label={lst:rag-query}]
 collection = get_collection()
@@ -350,7 +347,8 @@ response = collection.query(
 )
 \end{lstlisting}
 
-The prompt sent to the LLM is not generic. It is assembled from the
+The prompt sent to the LLM through the OpenAI API
+\cite{openai2026api} is not generic. It is assembled from the
 filtered ingredient list, user constraints, and retrieved recipe
 context. A shortened version of the prompt builder shows this clearly:
 
@@ -418,14 +416,29 @@ generation is realized as a fixed multi-stage workflow rather than a
 single opaque model call. Validation, retrieval, prompt construction,
 output checking, corrective retry, and response shaping appear as
 explicit stages in code, which is the implementation-level counterpart
-of the workflow diagrams and design rationale from Chapter~3.
+of the workflow diagrams and design rationale from Section~\ref{sec:design}.
+
+The implementation also includes dedicated RAG inspection endpoints in
+\texttt{backend/routes/rag\_debug.py}. These endpoints are not part of
+the normal browser workflow, but they were useful during development
+because they expose the same retrieval pipeline that recipe generation
+uses internally. The \texttt{/rag/debug} endpoint returns the generated
+retrieval query text, the candidates returned by Chroma, the
+allergy-conflict filtering result, the ranking score assigned to each
+candidate, and which items were ultimately selected as context. The
+\texttt{/rag/collection-stats} endpoint provides a lighter diagnostic
+view over the indexed corpus. In practice, these endpoints made it
+possible to verify that failures or weak recipe outputs came from
+retrieval quality, filtering, or prompt behavior rather than from a
+single opaque model response.
 
 \subsubsection{OCR-based nutrition label processing}
 
 The OCR subsystem is implemented as a two-stage pipeline: optical text
 recognition followed by semantic structuring into validated nutrition
 fields. The abstraction boundary for OCR providers is defined in
-\texttt{backend/services/ocr\_provider.py}:
+\texttt{backend/services/ocr\_provider.py}
+\cite{google2026vision}:
 
 \begin{lstlisting}[language=Python,caption={OCR provider strategy in \texttt{backend/services/ocr\_provider.py}},label={lst:ocr-provider}]
 class OcrProvider(ABC):
@@ -449,7 +462,8 @@ interface and can switch concrete providers without changing the route
 or higher-level service logic.
 
 Before OCR is executed, images are validated and normalized in
-\texttt{backend/services/ocr\_image\_processing.py}:
+\texttt{backend/services/ocr\_image\_processing.py} with Pillow
+\cite{pillow2026docs}:
 
 \begin{lstlisting}[language=Python,caption={Image preprocessing for OCR},label={lst:ocr-preprocess}]
 def prepare_image_for_ocr(file_bytes: bytes) -> bytes:
@@ -468,9 +482,10 @@ def prepare_image_for_ocr(file_bytes: bytes) -> bytes:
     return buffer.getvalue()
 \end{lstlisting}
 
-The second OCR stage turns raw text into structured JSON. The LLM prompt
-shows that the expected schema is explicit and validated later through
-Pydantic:
+The second OCR stage turns raw text into structured JSON
+\cite{json2017rfc8259}. The LLM prompt shows that the expected schema
+is explicit and validated later through Pydantic
+\cite{pydantic2026docs}:
 
 \begin{lstlisting}[language=Python,caption={Nutrition-structuring prompt in \texttt{backend/services/ocr\_service.py}},label={lst:ocr-prompt}]
 prompt = f"""
@@ -531,7 +546,8 @@ thumbnail_path.write_bytes(image_bytes)
 \end{lstlisting}
 
 The concrete provider for image generation is again represented through
-an abstract interface and a provider-specific implementation:
+an abstract interface and a provider-specific implementation
+\cite{openai2026images,openai2026api}:
 
 \begin{lstlisting}[language=Python,caption={Recipe image provider in \texttt{backend/services/recipe\_image\_provider.py}},label={lst:image-provider}]
 class RecipeImageProvider(ABC):
@@ -598,7 +614,8 @@ and navigation diagrams. The routes are declared in
 \texttt{frontend/src/App.jsx}, while each major use case is implemented
 as its own page component under \texttt{frontend/src/pages/}. This
 keeps the frontend aligned with the screen-flow diagram from
-Section~3.4.
+Section~3.4 and follows the React and React Router application model
+\cite{react2026docs,reactrouter2026docs}.
 
 The page organization is intentionally task-oriented. The Home page
 provides entry points into the two primary AI-supported workflows,
@@ -613,8 +630,9 @@ task.
 
 \subsubsection{Centralized API access}
 
-HTTP communication is centralized in \texttt{frontend/src/lib/api.js}.
-This module provides a single base URL resolver and a reusable
+HTTP communication \cite{http2022rfc9110} is centralized in
+\texttt{frontend/src/lib/api.js}. This module provides a single base URL
+resolver and a reusable
 \texttt{apiFetch()} wrapper that turns non-success responses into
 JavaScript errors with backend-supplied detail messages when available.
 This design keeps page components focused on user interaction and local
@@ -625,7 +643,7 @@ development environments.
 \subsubsection{Authentication state management}
 
 Shared authentication state is implemented through the React context in
-\texttt{frontend/src/context/AuthContext.jsx}:
+\texttt{frontend/src/context/AuthContext.jsx} \cite{react2026docs}:
 
 \begin{lstlisting}[language=Java,caption={Authentication context in \texttt{frontend/src/context/AuthContext.jsx}},label={lst:auth-context}]
 const AuthContext = createContext(null);
@@ -740,12 +758,13 @@ one component instead of being duplicated across multiple pages.
 
 \subsubsection{Relational schema in executable form}
 
-The relational design from Chapter~3 is not only diagrammed; it is
+The relational design from Section~\ref{sec:design} is not only diagrammed; it is
 materialized through ORM mappings and migration files. The resulting
 tables remain small in number but rich enough to capture ownership,
 save-state transitions, timestamps, and the denormalized structured
 payloads returned by the application. The following DDL-style excerpt
-shows the schema shape that the ORM and Alembic revisions realize:
+shows the schema shape that the ORM and Alembic revisions realize
+\cite{sqlalchemy2026docs,alembic2026docs}:
 
 \begin{lstlisting}[language=SQL,caption={Representative relational DDL for the implemented schema},label={lst:ddl-schema}]
 CREATE TABLE users (
@@ -797,10 +816,22 @@ generation exists conceptually, and structured variable-length content
 is stored as serialized text rather than decomposed into many auxiliary
 tables.
 
+The \texttt{fingerprint} field in \texttt{generated\_recipes} is also an
+implementation detail with practical value rather than a decorative
+schema element. In \texttt{backend/utils.py}, the application builds
+this fingerprint by normalizing the recipe title, ingredients,
+preferences, allergies, and steps, serializing the normalized payload,
+and hashing it with SHA-256. This makes the identity
+of a generated recipe depend on its meaningful content instead of
+surface formatting differences such as extra whitespace or input order.
+The result is a stable identifier that can be stored together with the
+generated row and reused in later comparisons or debugging.
+
 \subsubsection{ORM entities}
 
-The relational model from Chapter~3 is implemented in
-\texttt{backend/models.py}. The \texttt{GeneratedRecipe} entity is the
+The relational model from Section~\ref{sec:design} is implemented in
+\texttt{backend/models.py} with SQLAlchemy
+\cite{sqlalchemy2026docs}. The \texttt{GeneratedRecipe} entity is the
 most important example because it combines ownership, save state,
 thumbnail metadata, and several intentionally serialized fields:
 
@@ -838,7 +869,7 @@ for a thesis-scale application.
 
 \subsubsection{Schema migration history}
 
-Schema evolution is managed through Alembic. The migration
+Schema evolution is managed through Alembic \cite{alembic2026docs}. The migration
 \texttt{a3f9c2d1e804\_ocr\_image\_fields\_and\_pagination\_indexes.py}
 is a good example because it adds both new columns and composite
 indexes:
@@ -898,7 +929,7 @@ rows = (
 \end{lstlisting}
 
 This query is not only persistence code but also evidence that the
-index strategy described in Chapter~3 is connected to an actual access
+index strategy described in Section~\ref{sec:design} is connected to an actual access
 pattern in the system.
 
 The same query can be expressed at SQL level as follows:
@@ -981,11 +1012,36 @@ def index_recipe_corpus() -> None:
 
 The indexed recipe corpus is based on a cleaned subset of the Food.com
 dataset obtained from Kaggle and stored locally in
-\texttt{backend/data/recipes\_subset.json}. This indexing script shows
-that the retrieval layer is not abstract or
-purely conceptual. The corpus preparation and embedding workflow are
+\texttt{backend/data/recipes\_subset.json} \cite{foodcom2019kaggle}.
+This indexing script shows that the retrieval layer is not abstract or
+purely conceptual. The corpus preparation and embedding workflow
+\cite{openai2026embeddings} are
 implemented as executable code that can rebuild the persistent Chroma
-store used during generation.
+store \cite{chromadb2026docs} used during generation.
+
+However, the indexing script is only the second half of the retrieval
+pipeline. Before any embeddings are created, the raw Food.com export is
+cleaned by \texttt{backend/scripts/prepare\_recipes.py}. This script
+parses the CSV source, decodes list-like fields, normalizes ingredient
+text, removes duplicates, filters invalid recipes, and builds a short
+instruction summary for each retained item. The resulting
+\texttt{recipes\_subset.json} file is therefore not a raw dataset dump
+but a project-specific intermediate corpus shaped specifically for later
+retrieval. This preprocessing step is important implementation evidence
+because the quality of retrieval depends not only on the embedding model
+but also on how consistently the local corpus is cleaned and reduced
+before it enters Chroma.
+
+The vector-store layer itself is implemented in
+\texttt{backend/services/vector\_store\_service.py}. That module creates
+the persistent Chroma collection, converts each recipe into a compact
+document containing the title, ingredients, tags, and instruction
+summary, and stores the richer structured fields as metadata alongside
+the embedding \cite{chromadb2026docs}. This means that the retrieval
+representation used by the project is deliberately asymmetric: the
+document text is optimized for semantic matching, while metadata keeps
+the structured recipe fields available for later filtering, ranking, and
+prompt construction.
 
 \subsection{Known implementation limitations}
 
@@ -1026,7 +1082,7 @@ itself is valid.
 
 \subsubsection{Technical debt and maintainability concerns}
 
-The default relational database is SQLite, as configured in
+The default relational database is SQLite \cite{sqlite2026docs}, as configured in
 \texttt{backend/config.py}. This is appropriate for a local thesis-scale
 deployment, but it is not designed for larger multi-user or
 high-concurrency scenarios. The same applies to the custom rate limiter
@@ -1048,7 +1104,8 @@ The persistence model also contains an intentional denormalization
 tradeoff. Several structured values, such as recipe ingredients, steps,
 warnings, and OCR nutrition payloads, are stored as serialized text
 rather than being decomposed into separate relational child tables. This
-keeps the schema compact and matches the JSON-shaped API contracts well,
+keeps the schema compact and matches the JSON-shaped API contracts
+\cite{json2017rfc8259} well,
 but it reduces query flexibility and would become harder to maintain if
 the system evolved toward more complex reporting or cross-record
 analytics.
@@ -1068,11 +1125,12 @@ the same base ingredient set to reuse the same thumbnail even when
 preference or allergy context differs.
 
 The application also remains dependent on external AI services for its
-main intelligent features. Recipe generation, embedding creation, OCR
-text structuring, and recipe-image generation all require upstream API
-access and therefore do not currently support a fully offline execution
-mode. This is acceptable for the current thesis-scale deployment model,
-but it defines a clear operational boundary for the implementation.
+main intelligent features. Recipe generation, embedding creation
+\cite{openai2026embeddings}, OCR text structuring, and recipe-image
+generation all require upstream API access and therefore do not
+currently support a fully offline execution mode. This is acceptable
+for the current thesis-scale deployment model, but it defines a clear
+operational boundary for the implementation.
 
 \subsubsection{Planned but unimplemented improvements}
 
@@ -1081,9 +1139,10 @@ The recipe workflow does not yet support editing and re-saving generated
 recipes after the initial result is stored. The system does not yet
 provide editing or deletion for saved recipes or saved OCR history
 entries. The OCR subsystem exposes a provider abstraction, but only the
-Google Vision-based implementation is currently available in production
-form. Likewise, recipe image generation is represented through a
-provider interface, but only the OpenAI-backed path is implemented.
+Google Vision-based implementation \cite{google2026vision} is currently
+available in production form. Likewise, recipe image generation is
+represented through a provider interface, but only the OpenAI-backed
+path \cite{openai2026images,openai2026api} is implemented.
 
 The current application also lacks more advanced administrative and
 analytical functionality. For example, there is no dedicated dashboard
@@ -1114,15 +1173,15 @@ saved OCR media. These directions follow directly from the current
 implementation and would extend the project without requiring a
 fundamental redesign.
 
-\subsection{Chapter Summary}
+\subsection{Section Summary}
 
-Chapter~3 presented the architecture and design rationale of the
-project; this chapter showed their realization in code. The FastAPI
-bootstrap, route modules, service classes, and React context/page
-structure demonstrate that the UML and architectural diagrams reflect
-the actual repository. The persistence layer, Alembic revisions, and
-Chroma indexing script likewise show that the database and retrieval
-designs were implemented as executable program components rather than
-remaining design-only artifacts. This concrete implementation basis is
-used in the next chapter to evaluate functional behavior, robustness,
-and output quality.
+The design section presented the architecture and design rationale of the
+project; this implementation section showed their realization in code.
+The FastAPI bootstrap, route modules, service classes, and React
+context/page structure demonstrate that the UML and architectural
+diagrams reflect the actual repository. The persistence layer, Alembic
+revisions, and Chroma indexing script likewise show that the database
+and retrieval designs were implemented as executable program components
+rather than remaining design-only artifacts. This concrete
+implementation basis is used in the testing section to evaluate
+functional behavior, robustness, and output quality.

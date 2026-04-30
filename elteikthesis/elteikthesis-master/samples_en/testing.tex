@@ -1,7 +1,7 @@
 \section{Testing}
 \label{ch:testing}
 
-This chapter documents the executed tests for the implemented system.
+This section documents the executed tests for the implemented system.
 The testing evidence covers software correctness, user-interface
 behavior, API integration, operational robustness, and the quality
 boundary of the AI-assisted features. The executed validation includes
@@ -503,12 +503,11 @@ navigation, persistence, generated output display, and OCR result
 presentation. These aspects are easier to evaluate coherently when the
 system is used as an end user would use it.
 
-For this reason, the project includes a dedicated manual test pack in
-\texttt{docs/manual-test-cases.md}. The executed manual cases cover the
-main user-facing flows of the application rather than only isolated
-controls. The goal of this layer is to confirm that the implemented
-features can be completed successfully as end-to-end user tasks and to
-support the thesis with screenshot-based evidence.
+For this reason, the evaluation includes a dedicated set of manual test
+cases covering the main user-facing flows of the application rather than
+only isolated controls. The goal of this layer is to confirm that the
+implemented features can be completed successfully as end-to-end user
+tasks and to support the thesis with screenshot-based evidence.
 
 \subsubsection{Executed manual cases}
 
@@ -519,6 +518,11 @@ cases are summarized in Table~\ref{tab:manual-cases-summary}. The table
 follows a compact thesis-oriented format similar to classical manual
 test documentation: each row identifies the test type, the validated
 behavior, the test steps, the expected result, and the observed result.
+The concrete evidence for these scenarios is distributed across the
+earlier figures in this chapter: Figures~\ref{fig:ui-home-login},
+\ref{fig:ui-account-generate}, and \ref{fig:ui-history-saved-ocr}
+document the visible page-level results of login, account, generation,
+history, and OCR workflows from the perspective of the end user.
 
 \begin{table}[H]
 	\centering
@@ -778,7 +782,7 @@ stated explicitly.
 These limitations define the interpretation boundary of the evidence
 presented in this chapter.
 
-\subsection{Chapter Summary}
+\subsection{Section Summary}
 
 The testing evidence consists of multiple complementary layers.
 Automated backend tests verified authentication, persistence,

@@ -2,13 +2,33 @@
 \chapter{Developer Documentation}
 \label{ch:design}
 
-\section{Design}
+This chapter documents the technical contribution of the thesis through
+three implemented thesis contributions. The first contribution is an
+OCR-based nutrition-label processing workflow that accepts uploaded
+food-label images, extracts text, and converts the result into a
+structured nutritional representation. The second contribution is a
+structured recipe-generation and personalization workflow that combines
+ingredient-based input, retrieval-augmented generation, and user
+constraints such as dietary preferences and allergens. The third
+contribution is the backend and persistence layer that integrates these
+workflows into one application, supports authenticated use, and stores
+user-specific data such as preferences, generated recipes, and OCR
+history.
 
-This chapter presents the design of the \emph{AI Cookbook with
+The rest of the chapter explains these contributions from three
+perspectives. The design section presents the planned structure and
+responsibilities of the system, the implementation section shows how
+that design was realized in code, and the testing section evaluates the
+resulting application behavior.
+
+\section{Design}
+\label{sec:design}
+
+This section presents the design of the \emph{AI Cookbook with
 Ingredient-Based Search} system. The goal of the design is not to
 repeat implementation details, but to explain how the system was
-structured before discussing concrete modules and code in the next
-chapter. The design had to cover three core concerns of the project:
+structured before discussing concrete modules and code in the later
+implementation section. The design had to cover three core concerns of the project:
 user-facing interaction, backend application logic, and persistent
 data management.
 
@@ -1198,7 +1218,7 @@ and profile persistence for authenticated users. This makes the system
 easier to demonstrate and test without weakening the ownership model for
 private data.
 
-\subsection{Chapter Summary}
+\subsection{Section Summary}
 
 The design chapter establishes the AI Cookbook as a modular
 AI-assisted web application with explicit requirements, a layered
